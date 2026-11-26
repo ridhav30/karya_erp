@@ -277,6 +277,7 @@ const ENABLED = new Set([
     "/payable-history",
     "/payments",
     "/pos",
+    "/pos-profiles",
     "/price-lists",
     "/pricing-rules",
     "/purchase-invoices",
@@ -364,6 +365,13 @@ const MENU = [
     },
     {
       "to": "/users"
+    },
+    {
+      "group": "Accounts Setup",
+      "label": "Accounts Setup",
+      "items": [
+        "/pos-profiles"
+      ]
     }
   ]
 

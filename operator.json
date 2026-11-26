@@ -19,6 +19,7 @@
     "/payable-history",
     "/payments",
     "/pos",
+    "/pos-profiles",
     "/price-lists",
     "/pricing-rules",
     "/purchase-invoices",
@@ -93,6 +94,12 @@
         "Credit Notes",
         "Financial Reports",
         "VAT Return"
+      ]
+    },
+    {
+      "feature": "Accounts Setup",
+      "entries": [
+        "POS Counters"
       ]
     },
     {
@@ -231,6 +238,15 @@
       {
         "type": "link",
         "to": "/users"
+      },
+      {
+        "type": "group",
+        "id": "g:Accounts Setup",
+        "group": "Accounts Setup",
+        "label": "Accounts Setup",
+        "items": [
+          "/pos-profiles"
+        ]
       }
     ],
     "doctypes": []
