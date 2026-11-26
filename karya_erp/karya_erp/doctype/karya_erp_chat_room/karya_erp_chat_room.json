@@ -1,0 +1,86 @@
+{
+ "name": "Karya Erp Chat Room",
+ "autoname": "hash",
+ "field_order": [
+  "room_type",
+  "title",
+  "direct_key",
+  "created_by",
+  "last_message_at",
+  "last_message",
+  "members"
+ ],
+ "fields": [
+  {
+   "fieldname": "room_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Type",
+   "options": "Direct\nGroup",
+   "default": "Direct",
+   "reqd": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Title"
+  },
+  {
+   "fieldname": "direct_key",
+   "fieldtype": "Data",
+   "label": "Direct key",
+   "unique": 1,
+   "read_only": 1,
+   "description": "Both users, sorted: stops a second direct chat between the same two people."
+  },
+  {
+   "fieldname": "created_by",
+   "fieldtype": "Link",
+   "label": "Created by",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_message_at",
+   "fieldtype": "Datetime",
+   "label": "Last message at",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_message",
+   "fieldtype": "Small Text",
+   "label": "Last message",
+   "read_only": 1
+  },
+  {
+   "fieldname": "members",
+   "fieldtype": "Table",
+   "label": "Members",
+   "options": "Karya Erp Chat Room Member"
+  }
+ ],
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "write": 1
+  }
+ ],
+ "sort_field": "last_message_at",
+ "sort_order": "DESC",
+ "actions": [],
+ "creation": "2026-11-26 00:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-26 00:00:00",
+ "modified_by": "Administrator",
+ "module": "Karya Erp",
+ "owner": "Administrator",
+ "states": []
+}

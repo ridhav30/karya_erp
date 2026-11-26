@@ -1,0 +1,141 @@
+{#- UAE Tax Invoice (FTA, VAT 5%) — bundled by karya_erp; edit templates/print/uae_tax_invoice.html, not the record. -#}
+{%- set company = frappe.db.get_value("Company", doc.company, ["company_name", "tax_id", "default_currency", "phone_no", "email"], as_dict=1) or {} -%}
+{%- set is_return = doc.is_return -%}
+{%- set title_en = "Tax Credit Note" if is_return else "Tax Invoice" -%}
+{%- set title_ar = "إشعار دائن ضريبي" if is_return else "فاتورة ضريبية" -%}
+{%- set vat_rate = namespace(v=0) -%}
+{%- for t in doc.taxes -%}{%- if t.charge_type in ("On Net Total", "On Previous Row Total") -%}{%- set vat_rate.v = vat_rate.v + (t.rate or 0) -%}{%- endif -%}{%- endfor -%}
+{%- set foreign = doc.currency != company.default_currency -%}
+
+<style>
+  .uae { font-family: "Inter", "Segoe UI", Arial, "Noto Naskh Arabic", sans-serif; font-size: 10.5px; color: #1f2937; }
+  .uae table { width: 100%; border-collapse: collapse; }
+  .uae .head td { vertical-align: top; }
+  .uae .title { font-size: 20px; font-weight: 700; letter-spacing: .02em; margin: 0; }
+  .uae .ar { direction: rtl; font-size: 14px; font-weight: 600; color: #4b5563; }
+  .uae .muted { color: #6b7280; }
+  .uae .label { font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: #6b7280; margin-bottom: 2px; }
+  .uae .box { border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px 10px; }
+  .uae .grid td { width: 50%; vertical-align: top; padding: 0; }
+  .uae .grid td + td { padding-left: 10px; }
+  .uae .meta td { padding: 2px 0; }
+  .uae .meta td:first-child { color: #6b7280; width: 45%; }
+  .uae .items th { background: #f3f4f6; font-size: 9px; text-transform: uppercase; letter-spacing: .04em; color: #374151; padding: 6px; border-bottom: 1px solid #d1d5db; text-align: left; }
+  .uae .items td { padding: 6px; border-bottom: 1px solid #eef0f3; vertical-align: top; }
+  .uae .r { text-align: right !important; white-space: nowrap; }
+  .uae .totals td { padding: 4px 6px; }
+  .uae .totals tr.grand td { border-top: 1.5px solid #111827; font-weight: 700; font-size: 12px; padding-top: 6px; }
+  .uae .trn { font-weight: 600; }
+  .uae .foot { margin-top: 18px; font-size: 9px; color: #6b7280; border-top: 1px solid #e5e7eb; padding-top: 6px; }
+</style>
+
+<div class="uae">
+  {% if letter_head and not no_letterhead %}<div class="letter-head">{{ letter_head }}</div>{% endif %}
+
+  <table class="head">
+    <tr>
+      <td>
+        <p class="title">{{ title_en }}</p>
+        <div class="ar">{{ title_ar }}</div>
+      </td>
+      <td class="r">
+        <div style="font-size:13px;font-weight:700">{{ company.company_name or doc.company }}</div>
+        {% if doc.company_address_display %}<div class="muted">{{ doc.company_address_display }}</div>{% endif %}
+        <div class="trn" style="margin-top:4px">TRN / الرقم الضريبي: {{ company.tax_id or "—" }}</div>
+      </td>
+    </tr>
+  </table>
+
+  <table class="grid" style="margin-top:14px">
+    <tr>
+      <td>
+        <div class="box">
+          <div class="label">Bill to / إلى</div>
+          <div style="font-weight:600;font-size:11.5px">{{ doc.customer_name or doc.customer }}</div>
+          {% if doc.address_display %}<div class="muted">{{ doc.address_display }}</div>{% endif %}
+          <div class="trn" style="margin-top:4px">TRN: {{ doc.tax_id or "Not registered" }}</div>
+        </div>
+      </td>
+      <td>
+        <div class="box">
+          <table class="meta">
+            <tr><td>{{ "Credit note no." if is_return else "Invoice no." }}</td><td class="r"><b>{{ doc.name }}</b></td></tr>
+            <tr><td>Date of issue</td><td class="r">{{ frappe.utils.formatdate(doc.posting_date, "dd MMM yyyy") }}</td></tr>
+            {% if is_return and doc.return_against %}<tr><td>Against invoice</td><td class="r">{{ doc.return_against }}</td></tr>{% endif %}
+            {% if doc.po_no %}<tr><td>Customer PO</td><td class="r">{{ doc.po_no }}</td></tr>{% endif %}
+            {% if doc.due_date and not is_return %}<tr><td>Due date</td><td class="r">{{ frappe.utils.formatdate(doc.due_date, "dd MMM yyyy") }}</td></tr>{% endif %}
+            <tr><td>Currency</td><td class="r">{{ doc.currency }}{% if foreign %} · rate {{ doc.conversion_rate }}{% endif %}</td></tr>
+            {% if doc.place_of_supply %}<tr><td>Place of supply</td><td class="r">{{ doc.place_of_supply }}</td></tr>{% endif %}
+          </table>
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <table class="items" style="margin-top:14px">
+    <thead>
+      <tr>
+        <th style="width:4%">#</th>
+        <th>Description / الوصف</th>
+        <th class="r">Qty</th>
+        <th class="r">Unit price</th>
+        <th class="r">Taxable amount</th>
+        <th class="r">VAT %</th>
+        <th class="r">VAT</th>
+        <th class="r">Total incl. VAT</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for it in doc.items %}
+      {%- set net = it.net_amount if it.net_amount is not none else it.amount -%}
+      {%- set vat = (net or 0) * vat_rate.v / 100 -%}
+      <tr>
+        <td class="muted">{{ loop.index }}</td>
+        <td>
+          <div style="font-weight:600">{{ it.item_name }}</div>
+          {% if it.description and it.description|striptags|trim != it.item_name %}<div class="muted">{{ it.description|striptags|truncate(160) }}</div>{% endif %}
+        </td>
+        <td class="r">{{ frappe.utils.flt(it.qty, 3)|abs }} {{ it.uom or "" }}</td>
+        <td class="r">{{ frappe.utils.fmt_money(it.net_rate or it.rate, currency=doc.currency) }}</td>
+        <td class="r">{{ frappe.utils.fmt_money(net, currency=doc.currency) }}</td>
+        <td class="r">{{ frappe.utils.flt(vat_rate.v, 2) }}%</td>
+        <td class="r">{{ frappe.utils.fmt_money(vat, currency=doc.currency) }}</td>
+        <td class="r">{{ frappe.utils.fmt_money((net or 0) + vat, currency=doc.currency) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <table style="margin-top:10px">
+    <tr>
+      <td style="width:55%;vertical-align:top;padding-right:14px">
+        {% if doc.in_words %}<div class="label">Amount in words</div><div>{{ doc.in_words }}</div>{% endif %}
+        {% if doc.terms %}<div class="label" style="margin-top:10px">Terms</div><div class="muted">{{ doc.terms|striptags|truncate(600) }}</div>{% endif %}
+      </td>
+      <td style="vertical-align:top">
+        <table class="totals">
+          <tr><td>Total excl. VAT / المجموع</td><td class="r">{{ frappe.utils.fmt_money(doc.net_total, currency=doc.currency) }}</td></tr>
+          {% if doc.discount_amount %}<tr><td>Discount</td><td class="r">− {{ frappe.utils.fmt_money(doc.discount_amount, currency=doc.currency) }}</td></tr>{% endif %}
+          {% for t in doc.taxes %}{% if t.tax_amount %}
+          <tr><td>{{ t.description or t.account_head }}{% if t.rate %} ({{ frappe.utils.flt(t.rate, 2) }}%){% endif %}</td><td class="r">{{ frappe.utils.fmt_money(t.tax_amount_after_discount_amount or t.tax_amount, currency=doc.currency) }}</td></tr>
+          {% endif %}{% endfor %}
+          {% if doc.rounding_adjustment %}<tr><td>Rounding</td><td class="r">{{ frappe.utils.fmt_money(doc.rounding_adjustment, currency=doc.currency) }}</td></tr>{% endif %}
+          <tr class="grand"><td>Total incl. VAT / الإجمالي</td><td class="r">{{ frappe.utils.fmt_money(doc.rounded_total or doc.grand_total, currency=doc.currency) }}</td></tr>
+          {% if foreign %}
+          <tr><td class="muted">VAT in {{ company.default_currency }}</td><td class="r muted">{{ frappe.utils.fmt_money(doc.base_total_taxes_and_charges, currency=company.default_currency) }}</td></tr>
+          <tr><td class="muted">Total in {{ company.default_currency }}</td><td class="r muted">{{ frappe.utils.fmt_money(doc.base_rounded_total or doc.base_grand_total, currency=company.default_currency) }}</td></tr>
+          {% endif %}
+          {% if doc.outstanding_amount and not is_return and doc.docstatus == 1 %}
+          <tr><td class="muted">Balance due</td><td class="r muted">{{ frappe.utils.fmt_money(doc.outstanding_amount, currency=doc.currency) }}</td></tr>
+          {% endif %}
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <div class="foot">
+    {{ title_en }} issued under UAE Federal Decree-Law No. 8 of 2017 on Value Added Tax.
+    {% if doc.docstatus == 0 %}<b style="color:#b45309"> · DRAFT — not a valid tax document.</b>{% endif %}
+    {% if doc.docstatus == 2 %}<b style="color:#b91c1c"> · CANCELLED.</b>{% endif %}
+  </div>
+</div>

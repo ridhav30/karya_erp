@@ -1,0 +1,389 @@
+@import "tailwindcss";
+
+/* Dark mode is toggled by adding .dark to <html> */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------- Theme tokens (Frappe UI style — edit these to rebrand) ---------- */
+:root {
+  /* Creek Ledger — ink sidebar, paper canvas, one brass mark */
+  --canvas: #f2f4f5;          /* page background (paper) */
+  --background: #ffffff;      /* panels, inputs */
+  --foreground: #11222b;
+  --surface: #f7f9fa;         /* table headers, subtle panels */
+  --surface-2: #edf1f3;       /* hover, segmented control track */
+  --border: #dce2e5;
+  --border-subtle: #eaeef0;
+  --muted: #5b6a73;           /* secondary text (WCAG AA on white) */
+  --primary: #0a6c8c;         /* gulf teal: links, focus, active cells */
+  --primary-hover: #085a75;
+  --primary-foreground: #ffffff;
+  --primary-soft: #e6f3f7;
+  --strong: #0d2530;          /* primary action buttons */
+  --strong-foreground: #ffffff;
+  --success: #0f7a4d;
+  --warning: #a85f0b;
+  --danger: #d1264a;
+  --info: #1f5fbf;
+  /* Chrome */
+  --sidebar: #0d2530;
+  --sidebar-footer: rgba(0, 0, 0, .16);
+  --sidebar-text: #a9bdc6;
+  --sidebar-strong: #f4f8fa;
+  --sidebar-muted: #6f8791;
+  --sidebar-hover: rgba(255, 255, 255, .06);
+  --sidebar-active: rgba(255, 255, 255, .1);
+  --sidebar-line: rgba(255, 255, 255, .09);
+  --topbar: rgba(242, 244, 245, .85);
+  --surface-elevated: #eef2f4;
+  --brand-mark: #c79a2e;      /* brass: the logo tile and the active-menu marker, nowhere else */
+  --brand-mark-foreground: #1b1403;
+  --scroll-thumb: rgba(91, 106, 115, .28);
+  --series-1: #2a78d6;        /* charts: categorical slot 1 (validated) */
+  --series-2: #eb6834;
+  --scroll-thumb-hover: rgba(91, 106, 115, .5);
+  --sidebar-width: 15rem;
+  --sidebar-collapsed: 4.25rem;
+  --topbar-height: 3.5rem;
+  --tabbar-height: 3.5rem;
+  --float-shadow: 0 1px 2px rgba(13, 37, 48, .06), 0 14px 34px -10px rgba(13, 37, 48, .28);
+}
+
+.dark {
+  --canvas: #0a1318;
+  --background: #111c23;
+  --foreground: #e8eef1;
+  --surface: #0f191f;
+  --surface-2: #1a2830;
+  --border: #22323b;
+  --border-subtle: #182830;
+  --muted: #93a3ac;
+  --primary: #3fb0d4;
+  --primary-hover: #63c3e2;
+  --primary-foreground: #05212b;
+  --primary-soft: #12303b;
+  --strong: #e8eef1;
+  --strong-foreground: #0d2530;
+  --success: #3dd68c;
+  --warning: #f2b45a;
+  --danger: #ff7a8f;
+  --info: #7ab2ff;
+  --sidebar: #081217;
+  --sidebar-footer: rgba(0, 0, 0, .25);
+  --sidebar-text: #93a8b1;
+  --sidebar-hover: rgba(255, 255, 255, .05);
+  --sidebar-active: rgba(255, 255, 255, .09);
+  --sidebar-line: rgba(255, 255, 255, .07);
+  --topbar: rgba(10, 19, 24, .85);
+  --surface-elevated: #17252d;
+  --scroll-thumb: rgba(255, 255, 255, .12);
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --scroll-thumb-hover: rgba(255, 255, 255, .22);
+  --float-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 16px 36px -10px rgba(0, 0, 0, .7);
+}
+
+/* Expose tokens as Tailwind colours: bg-canvas, bg-surface, text-muted, border-border, bg-strong … */
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-muted: var(--muted);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-strong: var(--strong);
+  --color-strong-foreground: var(--strong-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-strong: var(--sidebar-strong);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-line: var(--sidebar-line);
+  --color-series-1: var(--series-1);
+  --color-series-2: var(--series-2);
+  --color-sidebar-footer: var(--sidebar-footer);
+  --color-topbar: var(--topbar);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-brand-mark: var(--brand-mark);
+  --color-brand-mark-foreground: var(--brand-mark-foreground);
+  --font-sans: "IBM Plex Sans", "IBM Plex Sans Arabic", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Arabic", "Noto Kufi Arabic", Tahoma, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Corners by role: controls 8px, panels 14px, big sheets 18px */
+  --radius-xs: .25rem;
+  --radius-sm: .375rem;
+  --radius-md: .5rem;
+  --radius-lg: .875rem;
+  --radius-xl: 1.125rem;
+  --radius-2xl: 1.5rem;
+
+  /* Greys and zincs carry a little of the ink hue, so nothing looks like stock Tailwind grey */
+  --color-gray-50: #f6f8f9; --color-gray-100: #edf1f3; --color-gray-200: #dce2e5; --color-gray-300: #c3ccd1;
+  --color-gray-400: #8c99a1; --color-gray-500: #67747d; --color-gray-600: #4d5a63; --color-gray-700: #36424a;
+  --color-gray-800: #232e35; --color-gray-900: #141e24; --color-gray-950: #0b1419;
+  --color-zinc-50: #f3f6f7; --color-zinc-100: #e4eaec; --color-zinc-200: #cbd4d8; --color-zinc-300: #a9b5bb;
+  --color-zinc-400: #87959c; --color-zinc-500: #667780; --color-zinc-600: #4a5a62; --color-zinc-700: #34434b;
+  --color-zinc-800: #1e2b32; --color-zinc-900: #131d23; --color-zinc-950: #0b1419;
+}
+
+/* ---------- Motion: animate-page-in, animate-pop-in, animate-dialog-in … ---------- */
+@theme static {
+  --ease-out-soft: cubic-bezier(.16, 1, .3, 1);
+
+  --animate-fade-in: fade-in .18s ease-out both;
+  --animate-page-in: page-in .22s var(--ease-out-soft) both;
+  --animate-pop-in: pop-in .14s var(--ease-out-soft) both;
+  --animate-dialog-in: dialog-in .2s var(--ease-out-soft) both;
+  --animate-toast-in: toast-in .25s var(--ease-out-soft) both;
+  --animate-icon-swap: icon-swap .3s var(--ease-out-soft) both;
+
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes page-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes pop-in {
+    from { opacity: 0; transform: translateY(-4px) scale(.97); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes dialog-in {
+    from { opacity: 0; transform: translateY(8px) scale(.98); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateX(16px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes grow { from { transform: scaleY(0); } to { transform: none; } }
+  @keyframes grow-x { from { transform: scaleX(0); } to { transform: none; } }
+  @keyframes icon-swap {
+    from { opacity: 0; transform: rotate(-90deg) scale(.6); }
+    to   { opacity: 1; transform: none; }
+  }
+}
+
+@layer base {
+  html, body, #root { height: 100%; }
+  html {
+    scroll-behavior: smooth;
+    font-feature-settings: 'kern', 'liga';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    @apply bg-canvas text-foreground font-sans text-[13.5px] leading-5;
+    transition: background-color .2s ease, color .2s ease;
+  }
+  * { @apply border-border; }
+  ::selection { background: var(--primary); color: #fff; }
+
+  button, [role="button"], a, select, input[type="checkbox"] { cursor: pointer; }
+  button:disabled { cursor: not-allowed; }
+
+  /* Numbers, money, IDs and dates: same family, lining tabular figures so columns line up */
+  .num { font-variant-numeric: tabular-nums lining-nums; font-feature-settings: 'tnum', 'lnum'; letter-spacing: -.005em; }
+  h1, h2, h3 { letter-spacing: -.012em; }
+
+  /* No number spinners */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+
+  /* Flat panels; only floating layers (menus, dialogs, pickers, toasts) lift off the page */
+  *:not([role="menu"]):not([role="dialog"]):not([role="listbox"]):not([data-combobox-dropdown]):not(.elev):not(.elev-sm):not(.input),
+  *::before, *::after {
+    box-shadow: none !important;
+    --tw-shadow: 0 0 #0000 !important;
+    --tw-ring-shadow: 0 0 #0000 !important;
+    --tw-ring-offset-shadow: 0 0 #0000 !important;
+  }
+  [role="menu"], [role="dialog"], [data-combobox-dropdown], .elev { box-shadow: var(--float-shadow) !important; }
+  .elev-sm { box-shadow: 0 1px 2px rgba(13, 37, 48, .08), 0 4px 12px -4px rgba(13, 37, 48, .16) !important; }
+
+  /* Thin, quiet scrollbars (6px; .scroll-thin makes it 4px) */
+  * { scrollbar-width: thin; scrollbar-color: var(--scroll-thumb) transparent; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); }
+
+  /* Theme switch: every surface fades together (class is set for ~250ms by ThemeProvider) */
+  html.theme-switching, html.theme-switching *, html.theme-switching *::before, html.theme-switching *::after {
+    transition: background-color .2s ease, border-color .2s ease, color .2s ease, fill .2s ease, stroke .2s ease !important;
+  }
+
+  /* Respect "reduce motion" */
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .01ms !important;
+    }
+  }
+
+  /* Touch screens: comfortable tap targets */
+  @media (pointer: coarse) {
+    button:not(.absolute):not(.fixed), [role="button"], select,
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) { min-height: 40px; }
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea { font-size: 16px; }
+  }
+  /* Room for the home-indicator bar on phones */
+  .safe-b { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+@layer components {
+  /* Text inputs, selects, dates: exactly 36px tall */
+  .input {
+    @apply h-9 w-full rounded-md border bg-background px-3 text-[13px] text-foreground outline-none transition-colors
+      placeholder:text-muted/70 hover:border-gray-300 focus:border-primary dark:hover:border-zinc-600 dark:focus:border-primary
+      disabled:cursor-not-allowed disabled:bg-surface disabled:text-muted;
+  }
+  .input:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 16%, transparent) !important; }
+  .label { @apply text-xs font-medium text-gray-600 dark:text-zinc-300; }
+  .card { @apply rounded-lg border bg-background; }
+
+  /* Spreadsheet grid: the focused cell gets one uniform blue frame */
+  .grid-table td { position: relative; }
+  .grid-table td:focus-within::after,
+  .grid-table td:has([aria-expanded="true"])::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 2px solid var(--primary);
+    background-color: color-mix(in srgb, var(--primary) 5%, transparent);
+    pointer-events: none;
+    z-index: 5;
+  }
+  .grid-table td input:focus, .grid-table td select:focus { outline: none; }
+  .grid-table td.dt-idx:focus-within::after, .grid-table td.dt-act:focus-within::after { display: none; }
+
+  /* Scroll containers */
+  .scroll-area {
+    overflow-y: auto;
+    overscroll-behavior: contain;   /* don't scroll the page behind a panel */
+    scroll-behavior: smooth;
+    scrollbar-gutter: stable;       /* no layout jump when the scrollbar appears */
+  }
+  .scroll-thin { scrollbar-width: thin; }
+  .scroll-thin::-webkit-scrollbar { width: 4px; height: 4px; }
+  .scroll-thin:not(:hover)::-webkit-scrollbar-thumb { background: transparent; }
+  .scroll-thin:not(:hover) { scrollbar-color: transparent transparent; }
+
+  .sidebar-scroll { scrollbar-color: rgba(255, 255, 255, .16) transparent; }
+  .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .16); }
+
+  /* Smooth open/close for collapsible blocks: grid-rows 0fr ↔ 1fr */
+  .collapse-grid {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows .2s var(--ease-out-soft), opacity .2s ease;
+  }
+  .collapse-grid[data-open="false"] { grid-template-rows: 0fr; opacity: 0; }
+  .collapse-grid > * { min-height: 0; overflow: hidden; }
+
+  /* Press feedback for buttons */
+  .pressable { transition: transform .1s ease, background-color .15s ease, color .15s ease, border-color .15s ease, opacity .15s ease; }
+  .pressable:active:not(:disabled) { transform: scale(.97); }
+  /* ============ Grids: one look for every table in the app ============
+     .dt          any table (lists, reports, child tables)
+     .dt-grid     editable spreadsheet grid: column lines, cells hold inputs
+     .dt-bar      title bar above a table   .dt-title / .dt-count inside it
+     .dt-foot     bar under a table (Add row, balance, paging)
+     .dt-idx      row-number column         .dt-num right-aligned money/qty
+     .dt-add / .dt-del   add-row and delete-row buttons                     */
+  .dt-bar {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem;
+    border-bottom: 1px solid var(--border); background: var(--surface); padding: .625rem .75rem;
+  }
+  .dt-title { font-size: 13px; font-weight: 600; letter-spacing: -.005em; color: var(--foreground); }
+  .dt-count {
+    border: 1px solid var(--border); border-radius: .25rem; background: var(--background);
+    padding: 0 .375rem; font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums;
+  }
+  .dt { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+  .dt > thead > tr > th {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: .625rem .75rem; white-space: nowrap; vertical-align: middle;
+    font-size: 12px; font-weight: 600; color: var(--muted);
+  }
+  .dt.dt-sticky > thead > tr > th { position: sticky; top: 0; z-index: 1; }
+  .dt > tbody > tr { border-bottom: 1px solid var(--border-subtle); transition: background-color .15s ease; }
+  .dt > tbody > tr:last-child { border-bottom: 0; }
+  .dt > tbody > tr:hover { background: color-mix(in srgb, var(--surface) 70%, transparent); }
+  .dt > tbody > tr.dt-click { cursor: pointer; }
+  .dt > tbody > tr > td { height: 2.5rem; padding: .5rem .75rem; vertical-align: middle; }
+  .dt > tfoot > tr > td {
+    background: var(--surface); border-top: 1px solid var(--border);
+    padding: .625rem .75rem; font-weight: 600; vertical-align: middle;
+  }
+  .dt .dt-num { text-align: right; font-variant-numeric: tabular-nums; }
+  .dt .dt-total { background: color-mix(in srgb, var(--surface) 60%, transparent); font-weight: 600; }
+  /* Editable grids: spreadsheet column lines, inputs fill the cell */
+  .dt-grid > thead > tr > th, .dt-grid > tbody > tr > td, .dt-grid > tfoot > tr > td { border-right: 1px solid var(--border); }
+  .dt-grid > thead > tr > th:last-child, .dt-grid > tbody > tr > td:last-child, .dt-grid > tfoot > tr > td:last-child { border-right: 0; }
+  .dt-grid > tbody > tr { border-bottom-color: var(--border); }
+  .dt-grid > tbody > tr > td { padding: 0; }
+  .dt-grid > tbody > tr > td.dt-pad { padding: .375rem .75rem; }
+  .dt .dt-idx {
+    width: 3rem; padding-left: 0; padding-right: 0; text-align: center; user-select: none;
+    font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums;
+  }
+  .dt > tbody > tr > td.dt-idx { background: color-mix(in srgb, var(--surface) 50%, transparent); }
+  .dt .dt-act { width: 3rem; padding: 0; text-align: center; border-right: 0; }
+  .dt-empty { padding: 2.5rem 1rem !important; text-align: center; font-size: 12px; color: var(--muted); height: auto !important; }
+  .dt-foot {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem;
+    border-top: 1px solid var(--border); background: var(--surface); padding: .625rem;
+  }
+  .dt-add {
+    display: inline-flex; align-items: center; gap: .375rem; height: 1.75rem; padding: 0 .625rem;
+    border: 1px solid var(--border); border-radius: .375rem; background: var(--background);
+    font-size: 12px; font-weight: 500; transition: background-color .15s ease, transform .1s ease;
+  }
+  .dt-add:hover { background: var(--surface-2); }
+  .dt-add:active { transform: scale(.97); }
+  .dt-add > svg { width: .875rem; height: .875rem; color: var(--primary); }
+  .dt-del {
+    display: grid; place-items: center; width: 1.75rem; height: 1.75rem; margin: 0 auto; border-radius: .25rem;
+    color: var(--muted); transition: background-color .15s ease, color .15s ease;
+  }
+  .dt-del:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); }
+  .dt-del > svg { width: .875rem; height: .875rem; }
+
+  .cell-input {
+    @apply h-10 w-full bg-transparent px-3 text-[13px] text-foreground outline-none placeholder:text-muted/60;
+  }
+}
+
+/* Phone cards: a table with class "rt" (or marked data-rt by lib/responsiveTables.js) renders each row as a card below md.
+   Cells carry data-label (shown as the caption); data-main = card headline; no label = actions row. */
+@media (max-width: 767px) {
+  table:is(.rt,[data-rt]) { min-width: 0 !important; width: 100%; }
+  :is(.rt,[data-rt]) thead, :is(.rt,[data-rt]) tfoot { display: none; }
+  table:is(.rt,[data-rt]), :is(.rt,[data-rt]) tbody { display: block; }
+  :is(.rt,[data-rt]) tbody > tr { display: flex; flex-direction: column; padding: .625rem .875rem; border-bottom: 1px solid var(--border); }
+  :is(.rt,[data-rt]) tbody > tr:last-child { border-bottom: 0; }
+  :is(.rt,[data-rt]) tbody > tr > td {
+    display: block; overflow: hidden; max-width: none !important; height: auto; padding: .1875rem 0 !important;
+    text-align: end; white-space: normal;
+  }
+  :is(.rt,[data-rt]) tbody > tr > td[data-label]::before {
+    content: attr(data-label); float: inline-start; margin-inline-end: .75rem; font-family: Inter, system-ui, sans-serif;
+    font-size: 11px; color: var(--muted); text-align: start;
+  }
+  :is(.rt,[data-rt]) tbody > tr > td[data-main] { order: -1; text-align: start; font-size: 13px; padding-bottom: .375rem !important; }
+  :is(.rt,[data-rt]) tbody > tr > td:not([data-label]):not([data-main]) { text-align: start; padding-top: .5rem !important; }
+  :is(.rt,[data-rt]) tbody > tr > td:not([data-label]):not([data-main]) > div { justify-content: flex-start; flex-wrap: wrap; }
+  :is(.rt,[data-rt]) tbody > tr > td:empty { display: none; }
+}

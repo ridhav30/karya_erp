@@ -1,0 +1,107 @@
+{
+ "name": "Karya Erp Chat Message",
+ "autoname": "hash",
+ "field_order": [
+  "room",
+  "sender",
+  "message",
+  "file_url",
+  "file_name",
+  "reply_to",
+  "ref_doctype",
+  "ref_name",
+  "ref_label",
+  "sent"
+ ],
+ "fields": [
+  {
+   "fieldname": "room",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Room",
+   "options": "Karya Erp Chat Room",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "sender",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Sender",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "message",
+   "fieldtype": "Text",
+   "label": "Message"
+  },
+  {
+   "fieldname": "file_url",
+   "fieldtype": "Data",
+   "label": "File",
+   "read_only": 1
+  },
+  {
+   "fieldname": "file_name",
+   "fieldtype": "Data",
+   "label": "File name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reply_to",
+   "fieldtype": "Data",
+   "label": "Reply to",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ref_doctype",
+   "fieldtype": "Data",
+   "label": "Document type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ref_name",
+   "fieldtype": "Data",
+   "label": "Document",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ref_label",
+   "fieldtype": "Data",
+   "label": "Document summary",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sent",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Sent",
+   "reqd": 1,
+   "search_index": 1
+  }
+ ],
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "write": 1
+  }
+ ],
+ "sort_field": "sent",
+ "sort_order": "DESC",
+ "actions": [],
+ "creation": "2026-11-26 00:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-26 18:00:00",
+ "modified_by": "Administrator",
+ "module": "Karya Erp",
+ "owner": "Administrator",
+ "states": []
+}

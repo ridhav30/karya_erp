@@ -1,0 +1,62 @@
+{#- Payslip — bundled by karya_erp; edit templates/print/uae_payslip.html, not the record. -#}
+{%- set company = frappe.db.get_value("Company", doc.company, ["company_name", "default_currency"], as_dict=1) or {} -%}
+{%- set cur = doc.currency or company.default_currency -%}
+{%- set rows = [doc.earnings|length, doc.deductions|length]|max -%}
+<style>
+  .ps { font-family: "Inter", "Segoe UI", Arial, sans-serif; font-size: 10.5px; color: #1f2937; }
+  .ps table { width: 100%; border-collapse: collapse; }
+  .ps .muted { color: #6b7280; }
+  .ps .label { font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: #6b7280; }
+  .ps .box { border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px 10px; }
+  .ps .meta td { padding: 2px 0; } .ps .meta td:first-child { color: #6b7280; width: 45%; }
+  .ps .lines th { background: #f3f4f6; font-size: 9px; text-transform: uppercase; letter-spacing: .04em; padding: 6px; text-align: left; border-bottom: 1px solid #d1d5db; }
+  .ps .lines td { padding: 5px 6px; border-bottom: 1px solid #eef0f3; }
+  .ps .r { text-align: right !important; white-space: nowrap; }
+  .ps .tot td { font-weight: 700; border-top: 1.5px solid #111827; }
+  .ps .net { margin-top: 12px; border: 1.5px solid #111827; border-radius: 6px; padding: 10px 12px; }
+</style>
+<div class="ps">
+  {% if letter_head and not no_letterhead %}<div class="letter-head">{{ letter_head }}</div>{% endif %}
+  <table>
+    <tr>
+      <td><div style="font-size:18px;font-weight:700">Payslip</div>
+        <div class="muted">{{ frappe.utils.formatdate(doc.start_date, "MMMM yyyy") }} · {{ frappe.utils.formatdate(doc.start_date, "dd MMM") }} – {{ frappe.utils.formatdate(doc.end_date, "dd MMM yyyy") }}</div></td>
+      <td class="r"><div style="font-size:13px;font-weight:700">{{ company.company_name or doc.company }}</div><div class="muted">{{ doc.name }}</div></td>
+    </tr>
+  </table>
+  <table style="margin-top:12px">
+    <tr>
+      <td style="width:50%;padding-right:6px;vertical-align:top"><div class="box"><table class="meta">
+        <tr><td>Employee</td><td><b>{{ doc.employee_name }}</b></td></tr>
+        <tr><td>Employee ID</td><td>{{ doc.employee }}</td></tr>
+        {% if doc.designation %}<tr><td>Designation</td><td>{{ doc.designation }}</td></tr>{% endif %}
+        {% if doc.department %}<tr><td>Department</td><td>{{ doc.department }}</td></tr>{% endif %}
+      </table></div></td>
+      <td style="width:50%;padding-left:6px;vertical-align:top"><div class="box"><table class="meta">
+        <tr><td>Days in period</td><td>{{ frappe.utils.flt(doc.total_working_days, 1) }}</td></tr>
+        <tr><td>Paid days</td><td>{{ frappe.utils.flt(doc.payment_days, 1) }}</td></tr>
+        {% if doc.leave_without_pay %}<tr><td>Unpaid leave</td><td>{{ frappe.utils.flt(doc.leave_without_pay, 1) }}</td></tr>{% endif %}
+        {% if doc.bank_name or doc.bank_account_no %}<tr><td>Bank</td><td>{{ doc.bank_name or "" }} {{ doc.bank_account_no or "" }}</td></tr>{% endif %}
+      </table></div></td>
+    </tr>
+  </table>
+  <table class="lines" style="margin-top:12px">
+    <thead><tr><th>Earnings</th><th class="r">Amount</th><th style="border-left:1px solid #d1d5db">Deductions</th><th class="r">Amount</th></tr></thead>
+    <tbody>
+      {% for i in range(rows) %}
+      {%- set e = doc.earnings[i] if i < doc.earnings|length else None -%}
+      {%- set d = doc.deductions[i] if i < doc.deductions|length else None -%}
+      <tr>
+        <td>{{ e.salary_component if e else "" }}</td><td class="r">{{ frappe.utils.fmt_money(e.amount, currency=cur) if e else "" }}</td>
+        <td style="border-left:1px solid #eef0f3">{{ d.salary_component if d else "" }}</td><td class="r">{{ frappe.utils.fmt_money(d.amount, currency=cur) if d else "" }}</td>
+      </tr>
+      {% endfor %}
+      <tr class="tot"><td>Gross earnings</td><td class="r">{{ frappe.utils.fmt_money(doc.gross_pay, currency=cur) }}</td><td style="border-left:1px solid #eef0f3">Total deductions</td><td class="r">{{ frappe.utils.fmt_money(doc.total_deduction, currency=cur) }}</td></tr>
+    </tbody>
+  </table>
+  <table class="net"><tr>
+    <td><div class="label">Net pay</div>{% if doc.total_in_words %}<div class="muted">{{ doc.total_in_words }}</div>{% endif %}</td>
+    <td class="r" style="font-size:16px;font-weight:700">{{ frappe.utils.fmt_money(doc.rounded_total or doc.net_pay, currency=cur) }}</td>
+  </tr></table>
+  <div class="muted" style="margin-top:14px;font-size:9px">This is a system-generated payslip.{% if doc.docstatus == 0 %} <b style="color:#b45309">DRAFT</b>{% endif %}</div>
+</div>

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#111827" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Karya Erp" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Karya Erp</title>
+    <script>window.csrf_token = "{{ csrf_token }}";</script>
+    <script>
+      // Apply the saved theme before first paint (no light→dark flash).
+      (function () {
+        try {
+          var t = localStorage.getItem('karya_erp_theme');
+          if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          document.documentElement.classList.toggle('dark', t === 'dark');
+          document.documentElement.setAttribute('data-theme', t);
+          if (localStorage.getItem('karya_erp_lang') === 'ar') { document.documentElement.dir = 'rtl'; document.documentElement.lang = 'ar'; }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

@@ -1,0 +1,33 @@
+{
+ "actions": [],
+ "autoname": "field:company",
+ "creation": "2026-11-14 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["company", "employer_id", "column_break_a", "employer_bank_routing_code", "employer_reference", "section_banks", "bank_routing"],
+ "fields": [
+  {"fieldname": "company", "fieldtype": "Link", "in_list_view": 1, "label": "Company", "options": "Company", "reqd": 1, "unique": 1},
+  {"description": "MOHRE establishment ID (13 digits)", "fieldname": "employer_id", "fieldtype": "Data", "in_list_view": 1, "label": "Employer ID (MOL Establishment)", "reqd": 1},
+  {"fieldname": "column_break_a", "fieldtype": "Column Break"},
+  {"description": "Routing code of the bank paying the salaries (9 digits)", "fieldname": "employer_bank_routing_code", "fieldtype": "Data", "label": "Employer Bank Routing Code", "reqd": 1},
+  {"description": "Optional reference printed on the SCR line", "fieldname": "employer_reference", "fieldtype": "Data", "label": "Employer Reference"},
+  {"fieldname": "section_banks", "fieldtype": "Section Break", "label": "Employee Banks"},
+  {"description": "Routing code for each bank name used on employees (Employee → Bank Name)", "fieldname": "bank_routing", "fieldtype": "Table", "label": "Bank Routing Codes", "options": "Karya Erp WPS Bank Routing"}
+ ],
+ "links": [],
+ "modified": "2026-11-14 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Karya Erp",
+ "name": "Karya Erp WPS Settings",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "read": 1, "role": "System Manager", "write": 1},
+  {"create": 1, "delete": 1, "read": 1, "role": "HR Manager", "write": 1},
+  {"read": 1, "role": "HR User"}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

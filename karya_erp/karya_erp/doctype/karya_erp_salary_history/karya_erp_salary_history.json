@@ -1,0 +1,36 @@
+{
+ "actions": [],
+ "autoname": "SALH-.YYYY.-.#####",
+ "creation": "2026-11-23 16:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["employee", "employee_name", "department", "company", "column_break_emp", "month_start", "gross_pay", "deductions", "net_pay", "remarks"],
+ "fields": [
+  {"fieldname": "employee", "fieldtype": "Link", "in_list_view": 1, "in_standard_filter": 1, "label": "Employee", "options": "Employee", "reqd": 1, "search_index": 1},
+  {"fetch_from": "employee.employee_name", "fieldname": "employee_name", "fieldtype": "Data", "in_list_view": 1, "label": "Employee Name", "read_only": 1},
+  {"fetch_from": "employee.department", "fieldname": "department", "fieldtype": "Link", "label": "Department", "options": "Department", "read_only": 1},
+  {"fetch_from": "employee.company", "fieldname": "company", "fieldtype": "Link", "in_standard_filter": 1, "label": "Company", "options": "Company", "read_only": 1},
+  {"fieldname": "column_break_emp", "fieldtype": "Column Break"},
+  {"fieldname": "month_start", "fieldtype": "Date", "in_list_view": 1, "in_standard_filter": 1, "label": "Month", "reqd": 1, "search_index": 1, "description": "Always the first day of the pay month"},
+  {"fieldname": "gross_pay", "fieldtype": "Currency", "in_list_view": 1, "label": "Gross Pay", "reqd": 1},
+  {"default": "0", "fieldname": "deductions", "fieldtype": "Currency", "label": "Deductions"},
+  {"fieldname": "net_pay", "fieldtype": "Currency", "in_list_view": 1, "label": "Net Pay", "read_only": 1},
+  {"fieldname": "remarks", "fieldtype": "Small Text", "label": "Remarks"}
+ ],
+ "links": [],
+ "modified": "2026-11-23 16:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Karya Erp",
+ "name": "Karya Erp Salary History",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "export": 1, "read": 1, "report": 1, "role": "HR Manager", "write": 1},
+  {"create": 1, "export": 1, "read": 1, "report": 1, "role": "HR User", "write": 1},
+  {"create": 1, "delete": 1, "export": 1, "read": 1, "report": 1, "role": "System Manager", "write": 1}
+ ],
+ "sort_field": "month_start",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "employee_name"
+}

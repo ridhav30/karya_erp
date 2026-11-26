@@ -1,0 +1,238 @@
+{
+  "source_app": "master_erp",
+  "app": "karya_erp",
+  "title": "Karya Erp",
+  "route": "karya_erp",
+  "routes": [
+    "/",
+    "/accounts",
+    "/audit-log",
+    "/batches",
+    "/credit-notes",
+    "/customers",
+    "/financial-reports",
+    "/import",
+    "/item-prices",
+    "/items",
+    "/pay",
+    "/payable",
+    "/payable-history",
+    "/payments",
+    "/pos",
+    "/price-lists",
+    "/pricing-rules",
+    "/purchase-invoices",
+    "/purchase-orders",
+    "/purchase-receipts",
+    "/receivable",
+    "/receivable-history",
+    "/receive",
+    "/sales-invoices",
+    "/stock-balance",
+    "/stock-entries",
+    "/stock-reconciliations",
+    "/suppliers",
+    "/users",
+    "/vat-return",
+    "/warehouses"
+  ],
+  "features": [
+    {
+      "feature": "Dashboard",
+      "entries": [
+        "Dashboard"
+      ]
+    },
+    {
+      "feature": "Selling",
+      "entries": [
+        "Point of Sale",
+        "Customers",
+        "Sales Invoices"
+      ]
+    },
+    {
+      "feature": "Buying",
+      "entries": [
+        "Suppliers",
+        "Purchase Orders",
+        "Purchase Receipts",
+        "Purchase Invoices"
+      ]
+    },
+    {
+      "feature": "Stock",
+      "entries": [
+        "Items",
+        "Warehouses",
+        "Stock Entries",
+        "Stock Balance",
+        "Stock Reconciliation",
+        "Batches"
+      ]
+    },
+    {
+      "feature": "Pricing",
+      "entries": [
+        "Item Prices",
+        "Price Lists",
+        "Pricing Rules"
+      ]
+    },
+    {
+      "feature": "Accounts",
+      "entries": [
+        "Overview",
+        "Accounts Receivable",
+        "Receive Payment",
+        "Receipt History",
+        "Accounts Payable",
+        "Make Payment",
+        "Payment History",
+        "Payments",
+        "Credit Notes",
+        "Financial Reports",
+        "VAT Return"
+      ]
+    },
+    {
+      "feature": "Import data",
+      "entries": [
+        "Import data"
+      ]
+    },
+    {
+      "feature": "Audit log",
+      "entries": [
+        "Audit log"
+      ]
+    },
+    {
+      "feature": "Users & Access",
+      "entries": [
+        "Users & Access"
+      ]
+    }
+  ],
+  "look": {
+    "layout": "Classic",
+    "sidebar_style": "Light",
+    "sidebar_color": "",
+    "theme_mode": "System",
+    "primary_color": "#0a6c8c",
+    "accent_color": "",
+    "button_style": "Neutral",
+    "corner_style": "Default",
+    "font": "IBM Plex Sans",
+    "density": "Comfortable",
+    "logo_fit": "Square",
+    "tagline": "",
+    "feature_config": {
+      "/pos": {
+        "pos_style": "normal",
+        "rest_bookings": "yes",
+        "rest_stations": "yes",
+        "rest_kitchen_display": "yes",
+        "rest_waiter": "yes",
+        "rest_tokens": "yes"
+      },
+      "/sales-invoices": {
+        "stock_update": "always"
+      },
+      "/purchase-invoices": {
+        "stock_update": "always"
+      },
+      "addons": {
+        "chat": "yes"
+      }
+    },
+    "workflows": [],
+    "labels": {},
+    "menu": [
+      {
+        "type": "link",
+        "to": "/"
+      },
+      {
+        "type": "group",
+        "id": "g:Selling",
+        "group": "Selling",
+        "label": "Selling",
+        "items": [
+          "/pos",
+          "/customers",
+          "/sales-invoices"
+        ]
+      },
+      {
+        "type": "group",
+        "id": "g:Buying",
+        "group": "Buying",
+        "label": "Buying",
+        "items": [
+          "/suppliers",
+          "/purchase-orders",
+          "/purchase-receipts",
+          "/purchase-invoices"
+        ]
+      },
+      {
+        "type": "group",
+        "id": "g:Stock",
+        "group": "Stock",
+        "label": "Stock",
+        "items": [
+          "/items",
+          "/warehouses",
+          "/stock-entries",
+          "/stock-balance",
+          "/stock-reconciliations",
+          "/batches"
+        ]
+      },
+      {
+        "type": "group",
+        "id": "g:Pricing",
+        "group": "Pricing",
+        "label": "Pricing",
+        "items": [
+          "/item-prices",
+          "/price-lists",
+          "/pricing-rules"
+        ]
+      },
+      {
+        "type": "group",
+        "id": "g:Accounts",
+        "group": "Accounts",
+        "label": "Accounts",
+        "items": [
+          "/accounts",
+          "/receivable",
+          "/receive",
+          "/receivable-history",
+          "/payable",
+          "/pay",
+          "/payable-history",
+          "/payments",
+          "/credit-notes",
+          "/financial-reports",
+          "/vat-return"
+        ]
+      },
+      {
+        "type": "link",
+        "to": "/import"
+      },
+      {
+        "type": "link",
+        "to": "/audit-log"
+      },
+      {
+        "type": "link",
+        "to": "/users"
+      }
+    ],
+    "doctypes": []
+  }
+}

@@ -1,0 +1,34 @@
+{
+ "actions": [],
+ "creation": "2026-11-23 15:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["user", "full_name", "company", "action", "reference_doctype", "reference_name", "summary", "changes", "ip_address"],
+ "fields": [
+  {"fieldname": "user", "fieldtype": "Link", "in_list_view": 1, "in_standard_filter": 1, "label": "User", "options": "User", "read_only": 1, "search_index": 1},
+  {"fieldname": "full_name", "fieldtype": "Data", "label": "Full Name", "read_only": 1},
+  {"fieldname": "company", "fieldtype": "Data", "in_list_view": 1, "in_standard_filter": 1, "label": "Company", "read_only": 1, "search_index": 1},
+  {"fieldname": "action", "fieldtype": "Select", "in_list_view": 1, "in_standard_filter": 1, "label": "Action", "options": "Create\nUpdate\nSubmit\nCancel\nDelete\nRename", "read_only": 1, "search_index": 1},
+  {"fieldname": "reference_doctype", "fieldtype": "Data", "in_list_view": 1, "in_standard_filter": 1, "label": "Document Type", "read_only": 1, "search_index": 1},
+  {"fieldname": "reference_name", "fieldtype": "Data", "in_list_view": 1, "label": "Document", "read_only": 1, "search_index": 1},
+  {"fieldname": "summary", "fieldtype": "Small Text", "label": "Summary", "read_only": 1},
+  {"fieldname": "changes", "fieldtype": "Long Text", "label": "Changes (JSON)", "read_only": 1},
+  {"fieldname": "ip_address", "fieldtype": "Data", "label": "IP Address", "read_only": 1}
+ ],
+ "in_create": 1,
+ "links": [],
+ "modified": "2026-11-23 15:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Karya Erp",
+ "name": "Karya Erp Operation Log",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [
+  {"read": 1, "export": 1, "report": 1, "role": "System Manager"},
+  {"read": 1, "export": 1, "report": 1, "role": "Auditor"}
+ ],
+ "read_only": 1,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
