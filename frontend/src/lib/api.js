@@ -1,3 +1,4 @@
+import { leaveEmployeePortal } from './portal.js'
 /**
  * Small helpers for calls that need full-page reloads (login/logout),
  * so the page is re-rendered by Frappe with a fresh CSRF token.
@@ -21,5 +22,5 @@ export async function login(usr, pwd) {
 }
 
 export async function logout() {
-  try { await post('/api/method/logout') } finally { window.location.reload() }
+  try { await post('/api/method/logout') } finally { leaveEmployeePortal(); window.location.reload() }
 }

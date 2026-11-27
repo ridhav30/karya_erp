@@ -1,7 +1,13 @@
 import { useState } from 'react'
-import { Eye, EyeOff, Loader2, Moon, Sun } from 'lucide-react'
+import { Eye, EyeOff, Loader2, Moon, Sun, UserRound } from 'lucide-react'
 import { login } from '../lib/api.js'
 import { useTheme } from '../app/theme-context.js'
+import { leaveEmployeePortal } from '../lib/portal.js'
+
+// Employees have a sign-in address of their own: <app>/employee. It signs in and opens My HR (attendance, leave, payslips, expenses).
+const HERE = window.location.pathname.replace(/\/+$/, '')
+const EMPLOYEE_LOGIN = /\/employee$/.test(HERE)
+const BASE = import.meta.env.DEV ? '' : `/${HERE.split('/')[1] ?? ''}` // the app's own address prefix (the router's basename)
 
 export default function Login() {
   const { theme, toggleTheme } = useTheme()
@@ -16,6 +22,7 @@ export default function Login() {
     setError('')
     setBusy(true)
     try {
+      if (!EMPLOYEE_LOGIN) leaveEmployeePortal() // the staff sign-in is the full menu
       await login(usr.trim(), pwd)
     } catch (err) {
       setError(err.message || 'Login failed')
@@ -39,14 +46,14 @@ export default function Login() {
 
       <div className="w-full max-w-sm animate-page-in">
         <div className="mb-6 flex flex-col items-center text-center">
-          <div className="grid size-10 place-items-center rounded-lg bg-brand-mark text-base font-bold text-brand-mark-foreground">M</div>
-          <h1 className="mt-4 text-lg font-semibold tracking-tight">Sign in to Karya Erp</h1>
-          <p className="mt-1 text-xs text-muted">Use your ERPNext account</p>
+          <div className="grid size-10 place-items-center rounded-lg bg-brand-mark text-base font-bold text-brand-mark-foreground">{EMPLOYEE_LOGIN ? <UserRound className="size-5" /> : 'M'}</div>
+          <h1 className="mt-4 text-lg font-semibold tracking-tight">{EMPLOYEE_LOGIN ? 'Employee sign-in' : 'Sign in to Karya Erp'}</h1>
+          <p className="mt-1 text-xs text-muted">{EMPLOYEE_LOGIN ? 'Your attendance, leave, payslips and expenses' : 'Use your ERPNext account'}</p>
         </div>
 
         <form onSubmit={onSubmit} className="card space-y-4 p-6">
           <label className="block space-y-1.5">
-            <span className="label">Email or username</span>
+            <span className="label">{EMPLOYEE_LOGIN ? 'Your login email' : 'Email or username'}</span>
             <input className="input" value={usr} onChange={(e) => setUsr(e.target.value)} autoComplete="username" autoFocus required />
           </label>
           <label className="block space-y-1.5">
@@ -85,6 +92,11 @@ export default function Login() {
 
         <p className="mt-4 text-center text-xs text-muted">
           Forgot password? <a href="/login#forgot" className="text-primary hover:underline">Reset it</a>
+        </p>
+        <p className="mt-2 text-center text-xs text-muted">
+          {EMPLOYEE_LOGIN
+            ? <>Not an employee? <a href={`${BASE}/`} className="text-primary hover:underline">Staff sign-in</a></>
+            : <>Employee? <a href={`${BASE}/employee`} className="text-primary hover:underline">Employee sign-in</a></>}
         </p>
       </div>
     </div>

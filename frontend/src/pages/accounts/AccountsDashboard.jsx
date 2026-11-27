@@ -1,4 +1,4 @@
-import { Link } from 'react-router'
+import Link from '../../components/AccessLink.jsx'
 import { useFrappeGetCall } from 'frappe-react-sdk'
 import { ArrowDownLeft, ArrowUpRight, BookText, FilePlus2, Landmark, Plus, Receipt, TrendingUp, Wallet } from 'lucide-react'
 import { useBoot } from '../../app/boot-context.js'
@@ -27,7 +27,7 @@ function Kpi({ label, value, sub, icon: Icon, tone, to, loading }) {
     red: 'bg-red-50 text-red-600 dark:bg-red-950/60 dark:text-red-400',
   }[tone]
   return (
-    <Link to={to} className="card flex items-start justify-between gap-3 p-4 transition-colors hover:border-gray-300 dark:hover:border-zinc-600">
+    <Link fallback="text" to={to} className="card flex items-start justify-between gap-3 p-4 transition-colors hover:border-gray-300 dark:hover:border-zinc-600">
       <div className="min-w-0">
         <p className="text-xs text-muted">{label}</p>
         <p className="num mt-1.5 truncate text-lg font-semibold">{loading ? <span className="inline-block h-6 w-24 animate-pulse rounded bg-surface-2" /> : value}</p>
@@ -108,7 +108,7 @@ export default function AccountsDashboard() {
           <ul className="divide-y">
             {(d?.cash_bank ?? []).map((b) => (
               <li key={b.name} className="flex items-center justify-between gap-3 px-4 py-2.5 text-[13px]">
-                <Link to={`/financial-reports/general-ledger?account=${encodeURIComponent(b.name)}`} className="min-w-0 hover:text-primary">
+                <Link fallback="text" to={`/financial-reports/general-ledger?account=${encodeURIComponent(b.name)}`} className="min-w-0 hover:text-primary">
                   <span className="block truncate">{b.account_name}</span>
                   <span className="text-[11px] text-muted">{b.account_type}</span>
                 </Link>
@@ -122,7 +122,7 @@ export default function AccountsDashboard() {
           <ul className="divide-y">
             {(d?.overdue_invoices ?? []).map((inv) => (
               <li key={inv.name}>
-                <Link to={`/sales-invoices/${encodeURIComponent(inv.name)}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-[13px] transition-colors hover:bg-gray-50/80 dark:hover:bg-zinc-800/40">
+                <Link fallback="text" to={`/sales-invoices/${encodeURIComponent(inv.name)}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-[13px] transition-colors hover:bg-gray-50/80 dark:hover:bg-zinc-800/40">
                   <span className="min-w-0">
                     <span className="block truncate">{inv.customer_name}</span>
                     <span className="num text-[11px] text-danger">Due {formatDate(inv.due_date)}</span>
@@ -138,7 +138,7 @@ export default function AccountsDashboard() {
           <ul className="divide-y">
             {(d?.recent_payments ?? []).map((p) => (
               <li key={p.name}>
-                <Link to={`/payments/${encodeURIComponent(p.name)}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-[13px] transition-colors hover:bg-gray-50/80 dark:hover:bg-zinc-800/40">
+                <Link fallback="text" to={`/payments/${encodeURIComponent(p.name)}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-[13px] transition-colors hover:bg-gray-50/80 dark:hover:bg-zinc-800/40">
                   <span className="flex min-w-0 items-center gap-2">
                     {p.payment_type === 'Receive' ? <ArrowDownLeft className="size-3.5 shrink-0 text-success" /> : <ArrowUpRight className="size-3.5 shrink-0 text-warning" />}
                     <span className="min-w-0">

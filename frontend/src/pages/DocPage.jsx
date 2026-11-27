@@ -40,6 +40,9 @@ const pickAddress = (a) => Object.fromEntries(ADDRESS_FIELDS.map((f) => [f, a?.[
 const sameAddress = (a, b) => ADDRESS_FIELDS.every((f) => (a?.[f] || '') === (b?.[f] || ''))
 const today = () => new Date().toLocaleDateString('en-CA')
 
+/** In the employee panel (or for a plain employee) every form is the person's own: the employee is fixed, never picked. */
+const isSelfService = (boot) => Boolean(boot.employee) && (Boolean(boot.employee_only) || boot.menu_view === 'employee')
+
 /** Default values for a new doc: ERPNext meta defaults, then the screen's own defaults. */
 function newDoc(config, meta, boot, prefill, preset) {
   // Opened from "Record payment" / "Credit note" …: ERPNext already filled everything in.
@@ -59,6 +62,13 @@ function newDoc(config, meta, boot, prefill, preset) {
   // The working branch (profile menu) fills a branch field; Payroll Entry / Appraisal Cycle use it as an employee filter, so they stay open.
   if (boot.branch && meta?.fieldMap?.branch && !['Payroll Entry', 'Appraisal Cycle'].includes(config.doctype)) doc.branch = boot.branch
   Object.assign(doc, config.defaults?.(boot) ?? {}, preset ?? {})
+  // The person's own employee record (and its name) on every employee form they open for themselves.
+  if (isSelfService(boot) && meta?.fieldMap?.employee && !prefill) {
+    doc.employee = boot.employee
+    if (meta.fieldMap.employee_name) doc.employee_name = boot.employee_name
+  } else if (doc.employee && !doc.employee_name && doc.employee === boot.employee && meta?.fieldMap?.employee_name) {
+    doc.employee_name = boot.employee_name
+  }
   for (const [k, v] of Object.entries(doc)) if (v == null) delete doc[k]
   if (config.items) doc.items = [{ qty: 1 }]
   for (const t of config.tables ?? []) if (t.startRows) doc[t.field] = Array.from({ length: t.startRows }, () => ({ ...(t.newRow?.(doc, [], boot) ?? {}) }))
@@ -214,7 +224,8 @@ export default function DocPage({ slug, config }) {
   const canEdit = !config.readOnly && docstatus === 0
   // With a workflow, submitting / cancelling happens through workflow actions (like Desk).
   const submittable = Boolean(meta?.is_submittable) && !workflow
-  const isFieldEditable = (f) => editing && !f.read_only && docstatus === 0 && !(f.onlyNew && !isNew)
+  const selfService = isSelfService(boot)
+  const isFieldEditable = (f) => editing && !f.read_only && docstatus === 0 && !(f.onlyNew && !isNew) && !(selfService && f.fieldname === 'employee')
   // The working company comes from the profile menu, so the Company field is hidden while it matches (an existing doc of another company still shows it).
   const isShown = (f) => (!f.when || f.when(doc)) && !(f.fieldname === 'company' && config.doctype !== 'Company' && (!doc.company || doc.company === boot.company))
   const tables = (config.tables ?? []).map((t) => ({ ...t, meta: meta ? metaOf(meta.fieldMap?.[t.field]?.options) : null })).filter((t) => t.meta && (!t.when || t.when(doc)))
@@ -228,6 +239,12 @@ export default function DocPage({ slug, config }) {
   const setField = async (fieldname, value) => {
     setDraft((d) => ({ ...d, [fieldname]: value }))
     setInvalid((list) => list.filter((x) => x !== fieldname))
+    // Picking an employee fills their name (the read-only "Employee Name"), like Desk's fetch.
+    if (fieldname === 'employee' && meta?.fieldMap?.employee_name) {
+      if (!value) setDraft((d) => ({ ...d, employee_name: null }))
+      else if (value === boot.employee) setDraft((d) => ({ ...d, employee_name: boot.employee_name }))
+      else call.get('frappe.client.get_value', { doctype: 'Employee', filters: value, fieldname: 'employee_name' }).then((r) => setDraft((d) => (d && d.employee === value ? { ...d, employee_name: r?.message?.employee_name ?? null } : d))).catch(() => {})
+    }
     // Screen-specific follow-ups (party -> account, mode of payment -> bank account …), like Desk's form scripts.
     if (config.onChange) {
       try {

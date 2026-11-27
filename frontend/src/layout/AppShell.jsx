@@ -1,5 +1,8 @@
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation, useMatches } from 'react-router'
+import { useBoot } from '../app/boot-context.js'
+import { routeAllowed } from '../lib/nav.js'
+import AccessDenied from '../pages/AccessDenied.jsx'
 import { Spinner } from '../components/Spinner.jsx'
 import Sidebar from './Sidebar.jsx'
 import Topbar from './Topbar.jsx'
@@ -15,6 +18,7 @@ export default function AppShell() {
   })
   const [mobileOpen, setMobileOpen] = useState(false)
   const { pathname } = useLocation()
+  const boot = useBoot()
   const matches = useMatches()
   // Animate when the page (route) changes, not when /sales-orders/new becomes /sales-orders/SO-0001.
   const routeKey = matches[matches.length - 1]?.id ?? pathname
@@ -83,7 +87,9 @@ export default function AppShell() {
         <main ref={mainRef} className="scroll-area relative flex-1 overflow-x-hidden">
           {/* Keyed by route: each page fades up on navigation */}
           <div key={routeKey} className="w-full animate-page-in space-y-4 p-3 sm:p-6">
-            <Suspense fallback={<div className="flex justify-center py-20"><Spinner className="size-5 text-primary" /></div>}><Outlet /></Suspense>
+            {routeAllowed(boot, pathname)
+              ? <Suspense fallback={<div className="flex justify-center py-20"><Spinner className="size-5 text-primary" /></div>}><Outlet /></Suspense>
+              : <AccessDenied />}
           </div>
         </main>
         <MobileTabBar onMenu={() => setMobileOpen(true)} />

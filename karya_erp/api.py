@@ -23,7 +23,7 @@ NAV_DOCTYPES = [
 	"Employee", "Karya Erp Employee Document", "Department", "Designation", "Branch", "Company", "Finance Book", "Payment Term", "Payment Terms Template", "Holiday List", "Holiday List Assignment",
 	"Attendance", "Employee Checkin", "Shift Type", "Shift Assignment", "Shift Request",
 	"Leave Type", "Leave Allocation", "Leave Application", "Leave Period", "Attendance Request",
-	"Salary Component", "Salary Structure", "Salary Structure Assignment", "Payroll Entry", "Salary Slip",
+	"Salary Component", "Karya Erp Salary History", "Salary Structure", "Salary Structure Assignment", "Payroll Entry", "Salary Slip",
 	"Additional Salary", "Expense Claim", "Employee Advance", "Expense Claim Type", "Karya Erp WPS Settings",
 	"Appraisal Cycle", "Appraisal", "Appraisal Template", "KRA", "Employee Feedback Criteria", "Goal",
 	"Employee Performance Feedback", "Full and Final Statement", "Gratuity",
@@ -68,6 +68,7 @@ def boot():
 	can_read = {dt: _can_read(dt) for dt in NAV_DOCTYPES}
 
 	from karya_erp.hr import employee_of, has_reports, is_hr, is_leave_approver
+	from karya_erp.users import page_access_of
 
 	employee = employee_of(user)
 	hr = is_hr(roles)
@@ -84,6 +85,7 @@ def boot():
 		"cost_center": company and frappe.get_cached_value("Company", company, "cost_center"),
 		"can_read": can_read,
 		"can_create": {dt: _can_read(dt, "create") for dt, ok in can_read.items() if ok},
+		"page_access": page_access_of(user),  # None, or {mode: "Custom", modules, pages}: the only modules / pages this person may open
 		"employee": employee,
 		"employee_name": employee and frappe.db.get_value("Employee", employee, "employee_name"),
 		"is_hr": hr,

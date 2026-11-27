@@ -40,6 +40,7 @@ function Breadcrumbs() {
   const page = t(match?.item?.label ?? 'Not found')
   let rest = match?.item && pathname.length > match.item.to.length ? decodeURIComponent(pathname.slice(match.item.to.length + 1)) : null
   if (rest && match.item.to === '/financial-reports') rest = reportByKey(rest)?.title ?? rest
+  if (rest && match.item.to === '/users') rest = rest === 'new' ? 'Add user' : rest.replace(/\/access$/, '')
 
   return (
     <nav className="flex min-w-0 items-baseline gap-2" aria-label="Breadcrumb">
@@ -266,7 +267,6 @@ export default function Topbar() {
           <kbd className="num ms-auto rounded border bg-surface-2 px-1 py-0.5 text-[9px]">Ctrl K</kbd>
         </button>
       </div>
-      <IconButton onClick={() => setSearching(true)} className="md:hidden" aria-label="Search"><Search className="size-4" /></IconButton>
       <CommandPalette open={searching} onClose={() => setSearching(false)} />
 
       <div className="ms-auto flex shrink-0 items-center gap-1 md:ms-0 md:gap-1.5">

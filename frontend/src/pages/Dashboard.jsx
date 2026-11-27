@@ -1,4 +1,5 @@
-import { Link, Navigate } from 'react-router'
+import { Navigate } from 'react-router'
+import Link from '../components/AccessLink.jsx'
 import { useFrappeGetCall } from 'frappe-react-sdk'
 import {
   AlertTriangle, ArrowDownLeft, ArrowUpRight, CheckSquare, ClipboardList, PackageCheck, Plus, TrendingDown, TrendingUp, Truck,
@@ -36,7 +37,7 @@ function Kpi({ label, value, sub, icon: Icon, tone = 'primary', to, loading }) {
       </span>
     </div>
   )
-  return to ? <Link to={to}>{body}</Link> : body
+  return to ? <Link fallback="text" to={to}>{body}</Link> : body
 }
 
 function Card({ title, action, children, className }) {
@@ -86,7 +87,7 @@ export default function Dashboard() {
   const topMax = Math.max(...(o?.top_customers ?? []).map((c) => c.amount), 0) || 1
 
   // Plain employees have no ERP dashboard: their home is My HR.
-  if (boot.employee_only) return <Navigate to="/my-hr" replace />
+  if (boot.employee_only || boot.menu_view === 'employee') return <Navigate to="/my-hr" replace />
 
   return (
     <>
@@ -129,7 +130,7 @@ export default function Dashboard() {
               {o.top_customers.map((c, i) => (
                 <li key={c.customer} className="text-xs">
                   <div className="mb-1 flex items-baseline justify-between gap-2">
-                    <Link to={`/customers/${encodeURIComponent(c.customer)}`} className="truncate font-medium hover:text-primary hover:underline">{c.customer_name || c.customer}</Link>
+                    <Link fallback="text" to={`/customers/${encodeURIComponent(c.customer)}`} className="truncate font-medium hover:text-primary hover:underline">{c.customer_name || c.customer}</Link>
                     <span className="num shrink-0">{formatMoney(c.amount, cur)}</span>
                   </div>
                   <span className="block h-1.5 overflow-hidden rounded-full bg-surface-2">
@@ -152,7 +153,7 @@ export default function Dashboard() {
                 return (
                   <li key={`${a.doctype}:${a.name}`} className="flex items-center gap-3 px-4 py-2.5 text-xs">
                     <div className="min-w-0 flex-1">
-                      {to ? <Link to={to} className="font-medium text-primary hover:underline">{a.name}</Link> : <span className="font-medium">{a.name}</span>}
+                      {to ? <Link fallback="text" to={to} className="font-medium text-primary hover:underline">{a.name}</Link> : <span className="font-medium">{a.name}</span>}
                       <span className="block truncate text-[11px] text-muted">{a.doctype}{a.party ? ` · ${a.party}` : ''} · {a.owner}</span>
                     </div>
                     {a.amount != null && <span className="num shrink-0">{formatMoney(a.amount, a.currency || cur)}</span>}
@@ -172,7 +173,7 @@ export default function Dashboard() {
                 return (
                   <li key={`${r.doctype}:${r.name}`} className="flex items-center gap-3 px-4 py-2.5 text-xs">
                     <div className="min-w-0 flex-1">
-                      {to ? <Link to={to} className="font-medium hover:text-primary hover:underline">{r.name}</Link> : <span className="font-medium">{r.name}</span>}
+                      {to ? <Link fallback="text" to={to} className="font-medium hover:text-primary hover:underline">{r.name}</Link> : <span className="font-medium">{r.name}</span>}
                       <span className="block truncate text-[11px] text-muted">{r.doctype}{r.party ? ` · ${r.party}` : ''} · {r.by} · {ago(r.modified)}</span>
                     </div>
                     {r.amount != null && <span className="num shrink-0">{formatMoney(r.amount, r.currency || cur)}</span>}

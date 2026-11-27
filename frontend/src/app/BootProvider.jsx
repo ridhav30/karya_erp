@@ -4,8 +4,12 @@ import { FullPageSpinner } from '../components/Spinner.jsx'
 import Login from '../pages/Login.jsx'
 import Setup from '../pages/Setup.jsx'
 import { setServerTimeZone } from '../lib/serverTime.js'
+import { useState } from 'react'
+import { menuViews } from '../lib/nav.js'
+import { storedMenuView, storeMenuView } from '../lib/portal.js'
 
 export function BootProvider({ children }) {
+  const [stored, setStored] = useState(() => storedMenuView())
   const { data, error, isLoading, mutate } = useFrappeGetCall(
     'karya_erp.api.boot', undefined, 'boot',
     { revalidateOnFocus: false, shouldRetryOnError: false },
@@ -33,5 +37,9 @@ export function BootProvider({ children }) {
   if (boot.needs_setup) return <Setup boot={boot} onDone={() => window.location.reload()} />
 
   setServerTimeZone(boot.time_zone)
-  return <BootContext value={{ ...boot, refresh: mutate }}>{children}</BootContext>
+  // The panel being shown: Employee or User, as chosen for this tab (or by the employee address), when this person has it; else the full menu.
+  const views = menuViews(boot)
+  const menu_view = views.includes(stored) ? stored : views.includes('all') ? 'all' : views[0]
+  const setMenuView = (v) => { storeMenuView(v); setStored(v) }
+  return <BootContext value={{ ...boot, menu_view, menu_views: views, employee_portal: menu_view === 'employee', setMenuView, refresh: mutate }}>{children}</BootContext>
 }

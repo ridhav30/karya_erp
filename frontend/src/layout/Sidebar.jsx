@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { NavLink, useLocation } from 'react-router'
-import { ChevronDown, ChevronsLeft, ChevronsRight, X } from 'lucide-react'
+import { NavLink, useLocation, useNavigate } from 'react-router'
+import { ArrowLeftRight, ChevronDown, ChevronsLeft, ChevronsRight, LayoutGrid, UserRound, X } from 'lucide-react'
 import { useBoot } from '../app/boot-context.js'
 import { t } from '../lib/i18n.js'
 import { useDashboard } from '../lib/useDashboard.js'
@@ -83,6 +83,27 @@ function NavGroup({ group, collapsed }) {
   )
 }
 
+/** Bottom of the sidebar: switch between the Employee panel (own HR pages) and the User panel (the full menu), for people who have both. */
+function PanelSwitch({ collapsed }) {
+  const boot = useBoot()
+  const navigate = useNavigate()
+  if ((boot.menu_views?.length ?? 0) < 2) return null
+  const toEmployee = boot.menu_view !== 'employee'
+  const go = () => { boot.setMenuView(toEmployee ? 'employee' : 'all'); navigate(toEmployee ? '/my-hr' : '/') }
+  const Icon = toEmployee ? UserRound : LayoutGrid
+  const label = toEmployee ? 'Employee panel' : 'User panel'
+  return (
+    <button
+      type="button" onClick={go} title={t(`Switch to ${label.toLowerCase()}`)}
+      className={cn('pressable flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13px] font-medium text-sidebar-text hover:bg-sidebar-hover hover:text-sidebar-strong', collapsed && 'justify-center px-0')}
+    >
+      <Icon className="size-4" />
+      {!collapsed && <span className="min-w-0 flex-1 truncate text-start">{t(label)}</span>}
+      {!collapsed && <ArrowLeftRight className="size-3.5 text-sidebar-muted" />}
+    </button>
+  )
+}
+
 export default function Sidebar({ collapsed, onToggleCollapse, onClose }) {
   const boot = useBoot()
   const { data: counts } = useDashboard()
@@ -92,14 +113,25 @@ export default function Sidebar({ collapsed, onToggleCollapse, onClose }) {
     <div className="flex h-full flex-col">
       {/* Brand */}
       <div className={cn('flex h-(--topbar-height) items-center gap-3 border-b border-sidebar-line px-4', collapsed && 'justify-center px-0')}>
-        <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-mark text-sm font-bold text-brand-mark-foreground">
-          {(boot.company || 'M').trim().charAt(0).toUpperCase()}
-        </div>
+        {collapsed && onToggleCollapse ? (
+          <button type="button" onClick={onToggleCollapse} title={t('Expand')} aria-label={t('Expand')} className="pressable grid size-9 shrink-0 place-items-center rounded-xl bg-brand-mark text-sm font-bold text-brand-mark-foreground">
+            {(boot.company || 'M').trim().charAt(0).toUpperCase()}
+          </button>
+        ) : (
+          <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-mark text-sm font-bold text-brand-mark-foreground">
+            {(boot.company || 'M').trim().charAt(0).toUpperCase()}
+          </div>
+        )}
         {!collapsed && (
           <div className="flex min-w-0 animate-fade-in flex-col leading-tight">
             <span className="truncate text-sm font-semibold tracking-tight text-sidebar-strong">{boot.company || 'Karya Erp'}</span>
             <span className="truncate text-[11.5px] text-sidebar-muted">{boot.company ? 'Karya Erp' : 'No company set'}</span>
           </div>
+        )}
+        {!collapsed && onToggleCollapse && !onClose && (
+          <button type="button" onClick={onToggleCollapse} title={t('Collapse')} aria-label={t('Collapse')} className="pressable ms-auto grid size-8 place-items-center rounded-lg text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-strong">
+            <ChevronsLeft className="size-4 rtl:rotate-180" />
+          </button>
         )}
         {onClose && (
           <button onClick={onClose} className="pressable ms-auto grid size-9 place-items-center rounded-lg text-sidebar-text hover:bg-sidebar-hover hover:text-sidebar-strong" aria-label="Close menu">
@@ -110,28 +142,24 @@ export default function Sidebar({ collapsed, onToggleCollapse, onClose }) {
 
       {/* Menu */}
       <nav className={cn('scroll-thin sidebar-scroll flex-1 space-y-0.5 overflow-y-auto overflow-x-hidden overscroll-contain py-3', collapsed ? 'px-2' : 'px-2.5')}>
+        {/* Collapsed: an obvious way to open the menu again */}
+        {collapsed && onToggleCollapse && (
+          <button type="button" onClick={onToggleCollapse} title={t('Expand')} aria-label={t('Expand')}
+            className="pressable mb-1 flex h-9 w-full items-center justify-center rounded-lg text-sidebar-text hover:bg-sidebar-hover hover:text-sidebar-strong">
+            <ChevronsRight className="size-4 rtl:rotate-180" />
+          </button>
+        )}
         {nav.map((g) => g.items
           ? <NavGroup key={g.label} group={g} collapsed={collapsed} />
           : <NavItem key={g.to} item={g} collapsed={collapsed} count={g.badge ? counts?.[g.badge] : 0} />)}
       </nav>
 
-      {/* Footer */}
-      <div className={cn('space-y-0.5 border-t border-sidebar-line bg-sidebar-footer p-2 safe-b', !collapsed && 'px-2.5')}>
-        {onToggleCollapse && (
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            title={collapsed ? t('Expand') : t('Collapse')}
-            className={cn(
-              'pressable flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13px] text-sidebar-text hover:bg-sidebar-hover hover:text-sidebar-strong',
-              collapsed && 'justify-center px-0',
-            )}
-          >
-            {collapsed ? <ChevronsRight className="size-4 rtl:rotate-180" /> : <ChevronsLeft className="size-4 rtl:rotate-180" />}
-            {!collapsed && t('Collapse')}
-          </button>
-        )}
-      </div>
+      {/* Footer: only the Employee / User panel switch, and only for people who have both panels */}
+      {(boot.menu_views?.length ?? 0) > 1 && (
+        <div className={cn('border-t border-sidebar-line bg-sidebar-footer p-2 safe-b', !collapsed && 'px-2.5')}>
+          <PanelSwitch collapsed={collapsed} />
+        </div>
+      )}
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, Navigate } from 'react-router'
+import { Navigate } from 'react-router'
+import Link from '../../components/AccessLink.jsx'
 import { useFrappeGetCall } from 'frappe-react-sdk'
 import { LogOut, Minus, Plus, Search, Settings2, ShoppingBasket, Store, Trash2, Utensils, Wallet } from 'lucide-react'
 import Button from '../../components/Button.jsx'
@@ -137,10 +138,13 @@ export function OpenShiftModal({ s, onClose, onOpened }) {
               </label>
             ))}
           </div>
-          <p className="flex flex-wrap justify-between gap-2 border-t pt-3 text-muted">
-            <Link to={`/pos-profiles/${encodeURIComponent(name)}`} className="text-primary hover:underline">{t('Edit this counter')}</Link>
-            <Link to="/pos-profiles/new" className="text-primary hover:underline">{t('Add a counter')}</Link>
-          </p>
+          {/* Counter setup is for people who may create counters; everyone else is not offered links that lead to “no access”. */}
+          {s.can_setup && (
+            <p className="flex flex-wrap justify-between gap-2 border-t pt-3 text-muted">
+              {profile && <Link to={`/pos-profiles/${encodeURIComponent(name)}`} className="text-primary hover:underline">{t('Edit this counter')}</Link>}
+              <Link to="/pos-profiles/new" className="text-primary hover:underline">{t('Add a counter')}</Link>
+            </p>
+          )}
         </div>
       </Modal>
       {closingOther && <CloseShift opening={closingOther.name} money={(v) => formatMoney(v ?? 0, profile?.currency)} onClose={() => setClosingOther(null)} onClosed={async () => { setClosingOther(null); await onOpened(null) }} />}

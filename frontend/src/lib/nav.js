@@ -39,7 +39,7 @@ const ALL_NAV = [
   {
     label: 'Selling', icon: ShoppingCart,
     items: [
-      { label: 'Point of Sale', to: '/pos', icon: Store, doctype: 'POS Profile' },
+      { label: 'Point of Sale', to: '/pos', icon: Store, doctype: 'POS Profile', requires: ['/pos-profiles', '/pos-closing-entries'] },
       { label: 'Customers', to: '/customers', icon: Users, doctype: 'Customer' },
       { label: 'Waiter Orders', to: '/waiter', icon: ConciergeBell, doctype: 'Restaurant Order' },
       { label: 'Token Screen', to: '/token-screen', icon: Hash, doctype: 'Restaurant Order' },
@@ -61,7 +61,7 @@ const ALL_NAV = [
       { label: 'Material Requests', to: '/material-requests', icon: ClipboardCheck, doctype: 'Material Request' },
       { label: 'Requests for Quotation', to: '/request-for-quotations', icon: MessageSquareQuote, doctype: 'Request for Quotation' },
       { label: 'Supplier Quotations', to: '/supplier-quotations', icon: FileText, doctype: 'Supplier Quotation' },
-      { label: 'Compare Quotes', to: '/quote-comparison', icon: Scale, doctype: 'Supplier Quotation' },
+      { label: 'Compare Quotes', to: '/quote-comparison', icon: Scale, doctype: 'Supplier Quotation', requires: ['/supplier-quotations', '/request-for-quotations'] },
       { label: 'Purchase Orders', to: '/purchase-orders', icon: ClipboardList, doctype: 'Purchase Order' },
       { label: 'Purchase Receipts', to: '/purchase-receipts', icon: PackageCheck, doctype: 'Purchase Receipt' },
       { label: 'Purchase Invoices', to: '/purchase-invoices', icon: FileSpreadsheet, doctype: 'Purchase Invoice' },
@@ -85,14 +85,14 @@ const ALL_NAV = [
   {
     label: 'Manufacturing', icon: Factory,
     items: [
-      { label: 'Bill of Materials', to: '/bill-of-materials', icon: Layers3, doctype: 'BOM' },
-      { label: 'Work Orders', to: '/work-orders', icon: ClipboardList, doctype: 'Work Order' },
-      { label: 'Job Cards', to: '/job-cards', icon: ListChecks, doctype: 'Job Card' },
+      { label: 'Bill of Materials', to: '/bill-of-materials', icon: Layers3, doctype: 'BOM', requires: ['/operations', '/workstations'] },
+      { label: 'Work Orders', to: '/work-orders', icon: ClipboardList, doctype: 'Work Order', requires: ['/bill-of-materials'] },
+      { label: 'Job Cards', to: '/job-cards', icon: ListChecks, doctype: 'Job Card', requires: ['/work-orders'] },
       { label: 'Operations', to: '/operations', icon: SlidersHorizontal, doctype: 'Operation' },
       { label: 'Workstations', to: '/workstations', icon: Factory, doctype: 'Workstation' },
-      { label: 'Production Plans', to: '/production-plans', icon: CalendarRange, doctype: 'Production Plan' },
-      { label: 'Subcontract POs', to: '/subcontract-purchase-orders', icon: ClipboardList, doctype: 'Purchase Order' },
-      { label: 'Subcontracting Orders', to: '/subcontracting-orders', icon: Truck, doctype: 'Subcontracting Order' },
+      { label: 'Production Plans', to: '/production-plans', icon: CalendarRange, doctype: 'Production Plan', requires: ['/work-orders', '/bill-of-materials'] },
+      { label: 'Subcontract POs', to: '/subcontract-purchase-orders', icon: ClipboardList, doctype: 'Purchase Order', requires: ['/subcontracting-orders'] },
+      { label: 'Subcontracting Orders', to: '/subcontracting-orders', icon: Truck, doctype: 'Subcontracting Order', requires: ['/subcontract-purchase-orders', '/subcontracting-receipts', '/subcontracting-boms'] },
       { label: 'Subcontracting Receipts', to: '/subcontracting-receipts', icon: PackageCheck, doctype: 'Subcontracting Receipt' },
       { label: 'Subcontracting BOMs', to: '/subcontracting-boms', icon: Layers3, doctype: 'Subcontracting BOM' },
     ],
@@ -287,11 +287,13 @@ const ENABLED = new Set([
     "/import",
     "/item-prices",
     "/items",
+    "/my-hr",
     "/pay",
     "/payable",
     "/payable-history",
     "/payments",
     "/pos",
+    "/pos-closing-entries",
     "/pos-profiles",
     "/price-lists",
     "/pricing-rules",
@@ -385,8 +387,12 @@ const MENU = [
       "group": "Accounts Setup",
       "label": "Accounts Setup",
       "items": [
-        "/pos-profiles"
+        "/pos-profiles",
+        "/pos-closing-entries"
       ]
+    },
+    {
+      "to": "/my-hr"
     }
   ]
 
@@ -411,26 +417,100 @@ export const NAV = MENU
 /** Doctypes the server should check read permission for (kept in sync with karya_erp/api.py). */
 export const NAV_DOCTYPES = NAV.flatMap((g) => g.items ?? [g]).map((i) => i.doctype).filter(Boolean)
 
+// child route -> the menu entries that need it (an entry's `requires` lists the child features it cannot work without)
+const PARENTS = {}
+for (const g of NAV) {
+  for (const i of g.items ?? [g]) {
+    for (const r of i.requires ?? []) (PARENTS[r] ??= []).push({ to: i.to, group: g.items ? g.label : null })
+  }
+}
+
+// Pages everyone may open whatever their page access says: home and the self-service pages.
+const OPEN_ROUTES = new Set(['/', '/approvals', '/my-hr', '/my-team'])
+
 /**
- * Filter the menu for this user: read permission (doctype), roles, and `when(boot)`.
+ * Per-person page access (Users & access): null / "All" = every page their roles allow; "Custom" = only the listed
+ * modules (menu groups, including pages added to them later) and pages. An administrator can always open Users & access.
+ */
+export function pageAllowed(boot, route, groupLabel) {
+  const pa = boot?.page_access
+  if (!pa || pa.mode !== 'Custom') return true
+  if (OPEN_ROUTES.has(route)) return true
+  if (route === '/users' && boot.is_system_manager) return true
+  const direct = (to, group) => (group != null && (pa.modules ?? []).includes(group)) || (pa.pages ?? []).includes(to)
+  // A child feature (POS counters under Point of Sale …) is open whenever a feature that needs it is.
+  return direct(route, groupLabel) || (PARENTS[route] ?? []).some((p) => direct(p.to, p.group))
+}
+
+/**
+ * May this person open the page at `to` right now? False when the app has it in the menu but their roles, or their page access,
+ * do not allow it. Use it to leave out links and buttons that would only lead to “no access”.
+ */
+export function canOpen(boot, to) {
+  const m = findNav(String(to).split('?')[0])
+  if (!m) return true // a sub-page of something already open, not a menu entry of its own
+  const { item, group } = m
+  return roleAllows(item, boot) && (!item.when || item.when(boot)) && (!group || (roleAllows(group, boot) && (!group.when || group.when(boot)))) && pageAllowed(boot, item.to, group?.label)
+}
+
+/** May this person open the page at `pathname`? Pages with no menu entry are not restricted here. */
+export function routeAllowed(boot, pathname) {
+  const m = findNav(pathname)
+  return !m || pageAllowed(boot, m.item.to, m.group?.label)
+}
+
+/** Do these roles / read permissions allow the menu entry? ({ can_read: {doctype: bool}, roles: [...] }) */
+export function roleAllows(item, { can_read: canRead = {}, roles = [] } = {}) {
+  return (!item.doctype || Boolean(canRead[item.doctype])) && (!item.roles || item.roles.some((r) => roles.includes(r)))
+}
+
+/**
+ * Filter the menu for this user: read permission (doctype), roles, `when(boot)` and their page access.
  * Employee-only users (no ERP access) get just the self-service entries.
  */
+// What an employee with no business role sees: their own HR pages, named "My …". These are the same pages HR staff use, but
+// each employee only ever gets their own records (the server restricts them to their own Employee).
+const SELF_SERVICE = [
+  ['/my-hr', 'Overview'], ['/leave-applications', 'My Leave'], ['/attendance', 'My Attendance'], ['/attendance-requests', 'Attendance Requests'],
+  ['/shift-requests', 'Shift Requests'], ['/salary-slips', 'My Payslips'], ['/expense-claims', 'My Expenses'], ['/employee-advances', 'My Advances'],
+]
+
+function selfServiceMenu(boot) {
+  const all = NAV.flatMap((g) => g.items ?? [g])
+  const ok = (i) => roleAllows(i, boot) && (!i.when || i.when(boot)) && pageAllowed(boot, i.to, null)
+  const mine = SELF_SERVICE.map(([to, label]) => ({ it: all.find((i) => i.to === to), label }))
+    .filter(({ it }) => it && ok(it))
+    .map(({ it, label }) => ({ ...it, label }))
+  const team = NAV.filter((g) => g.to === '/my-team' && ok(g)) // My Team, when they have people reporting to them (the approvals inbox is not part of the employee menu)
+  return [
+    ...(mine.length ? [{ label: 'My HR', icon: all.find((i) => i.to === '/my-hr')?.icon, items: mine }] : []),
+    ...team,
+  ]
+}
+
+/** The panels this person can switch between: Employee (their own HR pages; needs an employee record) and User (the full menu their roles allow). */
+export function menuViews(boot = {}) {
+  const has = (to) => NAV.some((g) => g.to === to || g.items?.some((i) => i.to === to))
+  const views = []
+  if (boot.employee && has('/my-hr')) views.push('employee')
+  if (!boot.employee_only) views.push('all')
+  return views
+}
+
 export function visibleNav(boot = {}) {
-  const canRead = boot.can_read ?? {}
-  const roles = new Set(boot.roles ?? [])
-  const allowed = (i) => (!i.doctype || canRead[i.doctype])
-    && (!i.roles || i.roles.some((r) => roles.has(r)))
-    && (!i.when || i.when(boot))
-  const menu = boot.employee_only ? NAV.filter((g) => g.selfService) : NAV
+  if (boot.employee_only || boot.menu_view === 'employee') return selfServiceMenu(boot)
+  const allowed = (i) => roleAllows(i, boot) && (!i.when || i.when(boot))
+  const menu = NAV
   return menu.filter((g) => !g.items || allowed(g))
-    .map((g) => (g.items ? { ...g, items: g.items.filter(allowed) } : g))
-    .filter((g) => (g.items ? g.items.length > 0 : allowed(g)))
+    .map((g) => (g.items ? { ...g, items: g.items.filter((i) => allowed(i) && pageAllowed(boot, i.to, g.label)) } : g))
+    .filter((g) => (g.items ? g.items.length > 0 : allowed(g) && pageAllowed(boot, g.to, null)))
 }
 
 /** Find the nav entry for a pathname (for breadcrumbs / titles). */
 export function findNav(pathname) {
   // Company pages live under Settings but have their own route.
   if (pathname === '/companies' || pathname.startsWith('/companies/')) return { item: { label: 'Companies', to: '/companies' } }
+  if (pathname === '/employee') return { item: { label: 'My HR', to: '/my-hr' } } // the employee address opens My HR
   for (const g of NAV) {
     if (g.to && (pathname === g.to || (g.to !== '/' && pathname.startsWith(g.to + '/')))) return { item: g }
     for (const i of g.items ?? []) {

@@ -1,0 +1,22 @@
+{
+ "name": "Karya Erp User Page Access Item",
+ "istable": 1,
+ "editable_grid": 1,
+ "field_order": ["kind", "value"],
+ "fields": [
+  {"fieldname": "kind", "fieldtype": "Select", "label": "Kind", "options": "Module\nPage", "reqd": 1, "in_list_view": 1},
+  {"fieldname": "value", "fieldtype": "Data", "label": "Module name or page route", "reqd": 1, "in_list_view": 1}
+ ],
+ "permissions": [],
+ "actions": [],
+ "creation": "2026-11-27 00:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-27 00:00:00",
+ "modified_by": "Administrator",
+ "module": "Karya Erp",
+ "owner": "Administrator",
+ "states": []
+}

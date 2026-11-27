@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { useNavigate } from 'react-router'
+import Link from '../../components/AccessLink.jsx'
 import { useFrappeGetCall } from 'frappe-react-sdk'
 import { Eye, LogOut, Plus, Search, Store } from 'lucide-react'
 import Button from '../../components/Button.jsx'
@@ -98,7 +99,7 @@ export default function PosSessions() {
                 {d && d.rows.length === 0 && <tr><td colSpan={9} className="dt-empty">No sessions found.</td></tr>}
                 {d?.rows.map((r) => (
                   <tr key={r.name}>
-                    <td className="whitespace-nowrap"><Link to={`/pos/session/${encodeURIComponent(r.name)}`} className="font-medium hover:text-primary hover:underline">{r.name}</Link></td>
+                    <td className="whitespace-nowrap"><Link fallback="text" to={`/pos/session/${encodeURIComponent(r.name)}`} className="font-medium hover:text-primary hover:underline">{r.name}</Link></td>
                     <td className="whitespace-nowrap">{r.pos_profile}</td>
                     <td className="whitespace-nowrap">{r.user_name}{r.mine && <span className="ms-1 text-[11px] text-muted">(you)</span>}</td>
                     <td className="num whitespace-nowrap">{when(r.period_start_date)}</td>

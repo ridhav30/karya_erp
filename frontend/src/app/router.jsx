@@ -8,9 +8,11 @@ import DocPage from '../pages/DocPage.jsx'
 import Placeholder from '../pages/Placeholder.jsx'
 import NotFound from '../pages/NotFound.jsx'
 // Hand-built pages load when first opened, so the first screen does not download the whole app.
+const MyHR = lazy(() => import('../pages/hr/MyHR.jsx'))
 const Import = lazy(() => import('../pages/Import.jsx'))
 const AuditLog = lazy(() => import('../pages/AuditLog.jsx'))
 const Users = lazy(() => import('../pages/Users.jsx'))
+const UserPage = lazy(() => import('../pages/UserPage.jsx'))
 const AccountsDashboard = lazy(() => import('../pages/accounts/AccountsDashboard.jsx'))
 const ChartOfAccounts = lazy(() => import('../pages/accounts/ChartOfAccounts.jsx'))
 const FinancialReports = lazy(() => import('../pages/accounts/FinancialReports.jsx'))
@@ -39,9 +41,13 @@ const doctypeRoutes = Object.entries(DOCTYPES).flatMap(([slug, config]) => {
 
 // Hand-built pages.
 const customRoutes = [
+  { path: 'my-hr', element: <MyHR /> },
+  { path: 'employee', element: <MyHR /> }, // the address employees sign in at (see the login page); once signed in it is their My HR
   { path: 'import', element: <Import /> },
   { path: 'audit-log', element: <AuditLog /> },
   { path: 'users', element: <Users /> },
+  { path: 'users/new', element: <UserPage /> },
+  { path: 'users/:email', element: <UserPage /> },
   { path: 'pos', element: <PosSessions /> },
   { path: 'pos/screen', element: <PointOfSale /> },
   { path: 'pos/session/:name', element: <PosSession /> },
