@@ -11,7 +11,7 @@ import json
 
 import frappe
 from frappe import _
-from frappe.utils import add_days, add_years, cint, getdate, nowdate
+from frappe.utils import add_days, add_years, getdate, nowdate
 
 
 def needs_setup():

@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router'
-import { Home, Menu, Plus, Search } from 'lucide-react'
+import { Home, Menu, Search } from 'lucide-react'
+import { CHAT_ENABLED, ChatTab } from '../lib/chatAddon.js'
 import { t } from '../lib/i18n.js'
 import { cn } from '../lib/utils.js'
 
@@ -17,9 +18,7 @@ export default function MobileTabBar({ onMenu }) {
         <button type="button" onClick={() => fire('master:search')} className={cn(tab, 'text-muted')}>
           <Search className="size-5" />{t('Search')}
         </button>
-        <button type="button" onClick={() => fire('master:create')} className={cn(tab, 'text-foreground')} aria-label={t('Create new')}>
-          <span className="grid size-10 place-items-center rounded-2xl bg-strong text-strong-foreground"><Plus className="size-5" /></span>
-        </button>
+        {CHAT_ENABLED && <ChatTab className={tab} />}
         <button type="button" onClick={onMenu} className={cn(tab, 'text-muted')}>
           <Menu className="size-5" />{t('Menu')}
         </button>

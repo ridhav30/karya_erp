@@ -171,8 +171,10 @@ def _allocations(pe, side, party, company, amount, chosen):
 
 @frappe.whitelist(methods=["POST"])
 def settle(side, party, amount, mode_of_payment, posting_date=None, reference_no=None, reference_date=None,
-           allocations=None, remarks=None, company=None, submit=1):
-	"""Record a payment. Returns the Payment Entry name and how the amount was split."""
+           allocations=None, remarks=None, company=None, submit=1, advance_only=0):
+	"""Record a payment. Returns the Payment Entry name and how the amount was split.
+
+	With advance_only the whole amount is kept as an advance on the party (nothing is allocated to invoices), to be matched later."""
 	s = _side(side)
 	_need("Payment Entry", "create")
 	company = _company(company)
@@ -206,7 +208,7 @@ def settle(side, party, amount, mode_of_payment, posting_date=None, reference_no
 		pe.paid_from = account
 	pe.paid_amount = pe.received_amount = amount
 	pe.source_exchange_rate = pe.target_exchange_rate = 1
-	rows = _allocations(pe, side, party, company, amount, chosen)
+	rows = [] if cint(advance_only) else _allocations(pe, side, party, company, amount, chosen)
 	for r, take in rows:
 		pe.append("references", {
 			"reference_doctype": s["invoice"], "reference_name": r.voucher_no, "total_amount": r.get("invoice_amount"),

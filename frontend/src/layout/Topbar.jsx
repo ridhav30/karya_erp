@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
-import { Building2, ChevronRight, Download, FilePlus2, LogOut, MapPin, Menu, Moon, Plus, Search, Settings, Share, Smartphone, SquarePlus, Sun, Zap } from 'lucide-react'
+import { Building2, ChevronRight, Download, FilePlus2, LogOut, MapPin, Moon, Plus, Search, Settings, Share, Smartphone, SquarePlus, Sun, Zap } from 'lucide-react'
 import { useQuickCreate } from '../app/quick-create-context.js'
 import { QUICK_CREATE } from '../lib/quickCreate.js'
 import { DOCTYPES } from '../lib/doctypes.js'
@@ -237,7 +237,7 @@ function UserMenu() {
   )
 }
 
-export default function Topbar({ onMenu }) {
+export default function Topbar() {
   const { theme, toggleTheme } = useTheme()
   const [searching, setSearching] = useState(false)
 
@@ -254,10 +254,6 @@ export default function Topbar({ onMenu }) {
 
   return (
     <header className="z-10 flex h-13 shrink-0 select-none items-center gap-2 border-b bg-topbar px-3 backdrop-blur-md md:h-(--topbar-height) md:px-6">
-      <IconButton onClick={onMenu} className="-ms-0.5 lg:hidden" aria-label="Open menu">
-        <Menu className="size-5" />
-      </IconButton>
-
       <Breadcrumbs />
 
       <div className="ms-auto me-2 hidden w-72 md:flex">

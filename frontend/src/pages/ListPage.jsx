@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
-import { useFrappeDeleteDoc, useFrappeGetDocCount, useFrappeGetDocList, useSWRConfig } from 'frappe-react-sdk'
-import { ChevronLeft, ChevronRight, Plus, Search, X } from 'lucide-react'
+import { useFrappeDeleteDoc, useFrappeGetCall, useFrappeGetDocList, useSWRConfig } from 'frappe-react-sdk'
+import { ChevronLeft, ChevronRight, Plus, Search, Heart, X } from 'lucide-react'
 import DataTable from '../components/DataTable.jsx'
 import ColumnPicker from '../components/ColumnPicker.jsx'
 import { useColumnPrefs } from '../lib/useColumnPrefs.js'
+import { useWishlist } from '../lib/useWishlist.js'
 import { listColumnChoices } from '../lib/tableLayout.js'
 import MobileList from '../components/MobileList.jsx'
 import Button from '../components/Button.jsx'
@@ -24,16 +25,22 @@ import { confirm } from '../lib/dialogs.js'
 
 const PAGE_SIZES = [10, 20, 50, 100]
 
+// "Wishlist only" is remembered per list, so it survives opening a record and coming back, or visiting another screen.
+const wishKey = (slug) => `master:wish:${slug}`
+const readWish = (slug) => { try { return localStorage.getItem(wishKey(slug)) === '1' } catch { return false } }
+const saveWish = (slug, on) => { try { if (on) localStorage.setItem(wishKey(slug), '1'); else localStorage.removeItem(wishKey(slug)) } catch { /* private mode */ } }
+
 // Keyed by the filters, not the tab label: two screens can show the same doctype (invoices vs credit notes).
 const countKey = (doctype, filters) => `count:${doctype}:${JSON.stringify(filters ?? [])}`
 
-function useTabCount(doctype, tab, enabled) {
-  const { data } = useFrappeGetDocCount(doctype, tab.filters, false, enabled ? countKey(doctype, tab.filters) : null, { refreshInterval: 60_000 })
-  return data
+/** Every status tab's count in one call (the order of `tabs`); refreshed every minute and after any change to the list. */
+function useTabCounts(doctype, tabs, enabled) {
+  const filters = tabs.map((t) => t.filters)
+  const { data } = useFrappeGetCall('karya_erp.api.tab_counts', { doctype, tabs: JSON.stringify(filters) }, enabled ? countKey(doctype, filters) : null, { refreshInterval: 60_000 })
+  return data?.message
 }
 
-function TabCount({ doctype, tab, active }) {
-  const n = useTabCount(doctype, tab, true)
+function TabCount({ n, active }) {
   if (n == null) return null
   return <span className={cn('num text-[10px]', active ? 'text-muted' : 'text-muted/70')}>{n > 999 ? '999+' : n}</span>
 }
@@ -83,6 +90,8 @@ export default function ListPage({ slug, config }) {
   const { meta, error: metaError, isLoading: metaLoading } = useMeta(config.doctype)
 
   const q = params.get('q') ?? ''
+  const wishOn = params.has('wish') ? params.get('wish') === '1' : readWish(slug) // an explicit ?wish= (a shared link) wins over what was remembered
+  const wishlist = useWishlist(config.noDocPage ? null : config.doctype)
   const pageSize = PAGE_SIZES.includes(Number(params.get('size'))) ? Number(params.get('size')) : 20
   const page = Math.max(0, Number(params.get('page') ?? 0))
   const [defField, defOrder] = (config.sort ?? 'modified desc').split(' ')
@@ -125,14 +134,15 @@ export default function ListPage({ slug, config }) {
     const out = []
     if ((boot.companies?.length ?? 0) > 1 && boot.company && meta?.fieldMap?.company) out.push(['company', '=', boot.company])
     if (boot.branch && meta?.fieldMap?.branch) out.push(['branch', '=', boot.branch])
+    if (wishOn) out.push(['name', 'in', wishlist.names.length ? wishlist.names : ['']])
     return out
-  }, [boot.companies, boot.company, boot.branch, meta])
+  }, [boot.companies, boot.company, boot.branch, meta, wishOn, wishlist.names])
   const tabs = useMemo(
     () => (config.tabs ?? [{ label: 'All', filters: [] }]).map((t) => ({ ...t, filters: [...t.filters, ...extraFilters, ...scopeFilters] })),
     [config.tabs, extraFilters, scopeFilters],
   )
   const tab = tabs.find((t) => t.label === params.get('tab')) ?? tabs[0]
-  const hasFilters = Boolean(q) || tab.label !== tabs[0].label || extraFilters.length > 0
+  const hasFilters = Boolean(q) || wishOn || tab.label !== tabs[0].label || extraFilters.length > 0
 
   // Configurable table: every column the user can pick, and the ones they chose (saved per list).
   const columnChoices = useMemo(() => {
@@ -175,7 +185,8 @@ export default function ListPage({ slug, config }) {
   )
 
   // Total for the current tab (shared cache with the tab badge) -> numbered pages when not searching.
-  const tabTotal = useTabCount(config.doctype, tab, Boolean(meta))
+  const tabCounts = useTabCounts(config.doctype, tabs, Boolean(meta))
+  const tabTotal = tabCounts?.[tabs.indexOf(tab)]
   const totalPages = !q && tabTotal != null ? Math.max(1, Math.ceil(tabTotal / pageSize)) : null
   const hasNext = totalPages != null ? page + 1 < totalPages : (rows?.length ?? 0) >= pageSize
 
@@ -237,6 +248,8 @@ export default function ListPage({ slug, config }) {
     }
   }
 
+  // With the Wishlist filter on, a row un-hearted (or not yet filtered out of the previous page) leaves the list at once.
+  const visibleRows = wishOn ? (rows ?? []).filter((r) => wishlist.has(r.name)) : (rows ?? [])
   const loadError = metaError || error
   const emptyText = q ? `No results for “${q}”.` : `Nothing in “${tab.label}” yet.`
   const loading = metaLoading || (isLoading && !rows)
@@ -260,7 +273,7 @@ export default function ListPage({ slug, config }) {
                   )}
                 >
                   {t.label}
-                  {meta && <TabCount doctype={config.doctype} tab={t} active={active} />}
+                  {meta && <TabCount n={tabCounts?.[tabs.indexOf(t)]} active={active} />}
                 </button>
               )
             })}
@@ -302,7 +315,7 @@ export default function ListPage({ slug, config }) {
                           className={cn('inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium', on ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-300' : 'bg-background text-muted')}
                         >
                           {t.label}
-                          {meta && <TabCount doctype={config.doctype} tab={t} active={on} />}
+                          {meta && <TabCount n={tabCounts?.[tabs.indexOf(t)]} active={on} />}
                         </button>
                       )
                     })}
@@ -326,6 +339,17 @@ export default function ListPage({ slug, config }) {
               </button>
             )}
           </div>
+          {!config.noDocPage && (
+            <button
+              type="button" onClick={() => { saveWish(slug, !wishOn); update({ wish: wishOn ? '0' : '1', page: '' }) }} aria-pressed={wishOn}
+              title={wishOn ? 'Showing your wishlist — click to show all' : 'Show only your wishlist'}
+              className={cn('inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium', wishOn ? 'border-wishlist/40 bg-wishlist/10 text-wishlist' : 'bg-background text-muted hover:text-foreground')}
+            >
+              <Heart className={cn('size-3.5', wishOn && 'fill-wishlist')} />
+              <span className="hidden sm:inline">Wishlist</span>
+              {wishlist.names.length > 0 && <span className="num text-[10px]">{wishlist.names.length}</span>}
+            </button>
+          )}
           {meta && <ColumnPicker all={columnChoices} settings={columnSettings} className="hidden md:inline-flex" />}
           {!config.readOnly && (
             <Button variant="primary" icon={Plus} onClick={createNew}>
@@ -348,6 +372,11 @@ export default function ListPage({ slug, config }) {
               {tab.label} <X className="size-3 text-muted" />
             </button>
           )}
+          {wishOn && (
+            <button type="button" onClick={() => { saveWish(slug, false); update({ wish: '0', page: '' }) }} className="inline-flex h-6 items-center gap-1 rounded border bg-background px-2 text-[11px]">
+              Wishlist <X className="size-3 text-muted" />
+            </button>
+          )}
           {q && (
             <button type="button" onClick={() => update({ q: '', page: '' })} className="inline-flex h-6 items-center gap-1 rounded border bg-background px-2 text-[11px]">
               “{q}” <X className="size-3 text-muted" />
@@ -365,9 +394,10 @@ export default function ListPage({ slug, config }) {
           {/* Phone: cards */}
           <div className="card overflow-hidden md:hidden">
             <MobileList
-              config={config} columns={columns} rows={rows ?? []} loading={loading}
+              config={config} columns={columns} rows={visibleRows} loading={loading}
               currency={boot.currency} empty={emptyText}
               onView={openDoc} onEdit={editDoc} onDelete={removeDoc} deleting={deleting}
+              wish={config.noDocPage ? undefined : wishlist}
             />
           </div>
 
@@ -375,13 +405,14 @@ export default function ListPage({ slug, config }) {
           <div className="hidden md:block">
             <DataTable
               columns={tableColumns.length ? tableColumns : [{ fieldname: 'name', label: 'ID', fieldtype: 'Data' }]}
-              rows={rows ?? []}
+              rows={visibleRows}
               loading={loading}
               sort={sort}
               onSort={onSort}
               currency={boot.currency}
               onRowClick={config.noDocPage ? undefined : openDoc}
-              empty={emptyText}
+              empty={wishOn && !q ? 'Nothing in your wishlist yet — tap the heart on a row.' : emptyText}
+              wish={config.noDocPage ? undefined : wishlist}
             />
           </div>
         </>

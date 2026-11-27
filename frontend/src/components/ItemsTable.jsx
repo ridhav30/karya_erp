@@ -98,7 +98,16 @@ export default function ItemsTable({ rows, onChange, editing, childMeta, itemsCo
       if (itemsConfig.basicDetails) {
         out.s_warehouse = row.s_warehouse || doc[itemsConfig.sourceWarehouse]
         out.t_warehouse = row.t_warehouse || doc[itemsConfig.targetWarehouse]
-        if (!row.basic_rate && d.valuation_rate) out.basic_rate = d.valuation_rate
+        if (!row.basic_rate) {
+          // The item's own "valuation rate" is only an opening figure (usually 0); the real cost is what the stock is worth now.
+          let rate = 0
+          try {
+            const w = out.s_warehouse || out.t_warehouse
+            const v = await call.get('erpnext.stock.get_item_details.get_valuation_rate', { item_code: code, company: doc.company, ...(w ? { warehouse: w } : {}) })
+            rate = Number(v?.message?.valuation_rate ?? v?.message) || 0
+          } catch { /* fall back to the opening rate */ }
+          out.basic_rate = rate || d.valuation_rate || undefined
+        }
       }
       return out
     } catch {

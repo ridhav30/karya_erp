@@ -1,3 +1,5 @@
+/* eslint-disable react-refresh/only-export-components -- the router builds lazy page components and exports only the router itself */
+import { lazy } from 'react'
 import { createBrowserRouter } from 'react-router'
 import AppShell from '../layout/AppShell.jsx'
 import Dashboard from '../pages/Dashboard.jsx'
@@ -5,20 +7,21 @@ import ListPage from '../pages/ListPage.jsx'
 import DocPage from '../pages/DocPage.jsx'
 import Placeholder from '../pages/Placeholder.jsx'
 import NotFound from '../pages/NotFound.jsx'
-import Import from '../pages/Import.jsx'
-import AuditLog from '../pages/AuditLog.jsx'
-import Users from '../pages/Users.jsx'
-import AccountsDashboard from '../pages/accounts/AccountsDashboard.jsx'
-import ChartOfAccounts from '../pages/accounts/ChartOfAccounts.jsx'
-import FinancialReports from '../pages/accounts/FinancialReports.jsx'
-import ReportPage from '../pages/accounts/ReportPage.jsx'
-import VatReturn from '../pages/accounts/VatReturn.jsx'
-import PointOfSale from '../pages/sales/PointOfSale.jsx'
-import PartyBalances from '../pages/accounts/PartyBalances.jsx'
-import PartyPayment from '../pages/accounts/PartyPayment.jsx'
-import PartyHistory from '../pages/accounts/PartyHistory.jsx'
-import PosSessions from '../pages/sales/PosSessions.jsx'
-import PosSession from '../pages/sales/PosSession.jsx'
+// Hand-built pages load when first opened, so the first screen does not download the whole app.
+const Import = lazy(() => import('../pages/Import.jsx'))
+const AuditLog = lazy(() => import('../pages/AuditLog.jsx'))
+const Users = lazy(() => import('../pages/Users.jsx'))
+const AccountsDashboard = lazy(() => import('../pages/accounts/AccountsDashboard.jsx'))
+const ChartOfAccounts = lazy(() => import('../pages/accounts/ChartOfAccounts.jsx'))
+const FinancialReports = lazy(() => import('../pages/accounts/FinancialReports.jsx'))
+const ReportPage = lazy(() => import('../pages/accounts/ReportPage.jsx'))
+const VatReturn = lazy(() => import('../pages/accounts/VatReturn.jsx'))
+const PointOfSale = lazy(() => import('../pages/sales/PointOfSale.jsx'))
+const PartyBalances = lazy(() => import('../pages/accounts/PartyBalances.jsx'))
+const PartyPayment = lazy(() => import('../pages/accounts/PartyPayment.jsx'))
+const PartyHistory = lazy(() => import('../pages/accounts/PartyHistory.jsx'))
+const PosSessions = lazy(() => import('../pages/sales/PosSessions.jsx'))
+const PosSession = lazy(() => import('../pages/sales/PosSession.jsx'))
 import { NAV } from '../lib/nav.js'
 import { DOCTYPES } from '../lib/doctypes.js'
 

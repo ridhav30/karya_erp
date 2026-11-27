@@ -468,7 +468,7 @@ export default function DocPage({ slug, config }) {
       {currentTab === PAY_TAB && <PartyAccount key={doc.name} doctype={config.doctype} name={doc.name} />}
       {sections.length > 0 && currentTab !== PAY_TAB && (
         <div key={currentTab} className="card animate-fade-in divide-y">
-          {sections.filter((s) => tabOf(s) === currentTab && s.fields.some(isShown)).map((s) => (
+          {sections.filter((s) => tabOf(s) === currentTab && (!s.when || s.when(doc)) && s.fields.some(isShown)).map((s) => (
             <section key={s.title} className="p-4">
               {s.collapsed ? (
                 <button

@@ -18,7 +18,8 @@ function connect() {
     .then(({ message: info }) => {
       state.event = info.event
       // Same rule as Frappe's own desk: behind nginx (no port in the URL) use the page's origin, otherwise the socket port.
-      const base = window.location.port ? `${window.location.protocol}//${window.location.hostname}:${info.port}` : window.location.origin
+      // The Vite dev server proxies /socket.io itself (vite.config.js), so there too the page's origin is used.
+      const base = window.location.port && !import.meta.env.DEV ? `${window.location.protocol}//${window.location.hostname}:${info.port}` : window.location.origin
       const socket = io(`${base}/${info.site}`, { withCredentials: true, reconnectionDelayMax: 5000 })
       state.socket = socket
       socket.on('connect', () => { state.connected = true; bus.dispatchEvent(new Event('state')); bus.dispatchEvent(new Event('update')) }) // refetch once: events may have been missed while offline

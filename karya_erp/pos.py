@@ -14,7 +14,7 @@ import json
 
 import frappe
 from frappe import _
-from frappe.utils import cint, flt, get_datetime, getdate, nowdate
+from frappe.utils import cint, flt, nowdate
 
 from erpnext.selling.page.point_of_sale.point_of_sale import check_pos_profile_access, get_items, get_parent_item_group
 
@@ -41,13 +41,26 @@ def _profile_data(name):
 	}
 
 
+def _is_manager():
+	"""A manager (Sales / System Manager) may open and close any counter and sees every shift."""
+	return bool(frappe.has_permission("POS Closing Entry", "create"))
+
+
+def _cashiers(profile):
+	return frappe.get_all("POS Profile User", filters={"parent": profile, "parenttype": "POS Profile"}, pluck="user")
+
+
+def _may_use(profile):
+	"""Managers use any counter. Everyone else only the counters they are listed on; a counter with nobody listed is for managers."""
+	return _is_manager() or frappe.session.user in _cashiers(profile)
+
+
 def _allowed_profiles():
 	if not frappe.has_permission("POS Profile", "read") and not frappe.only_has_select_perm("POS Profile"):
 		return []
 	out = []
 	for name in frappe.get_all("POS Profile", filters={"disabled": 0}, pluck="name"):
-		users = frappe.get_all("POS Profile User", filters={"parent": name, "parenttype": "POS Profile"}, pluck="user")
-		if not users or frappe.session.user in users:
+		if _may_use(name):
 			try:
 				check_pos_profile_access(name)
 			except frappe.PermissionError:
@@ -66,19 +79,28 @@ def session():
 	)
 	opening = opening[0] if opening else None
 	if opening:
+		# ERPNext refuses sales on a shift that was opened on an earlier day: the till tells the cashier to close it and start a new one.
+		opening["stale"] = frappe.utils.getdate(opening.period_start_date) != frappe.utils.getdate(frappe.utils.nowdate())
 		opening["balances"] = frappe.get_all("POS Opening Entry Detail", filters={"parent": opening.name}, fields=["mode_of_payment", "opening_amount"])
-	# Shifts someone else left open on a counter this user can use: ERPNext allows one open shift per counter, so
-	# these block "Open shift" until they are closed.
+	# Shifts someone else has open on a counter this user can use: ERPNext allows one open shift per counter, so
+	# they block "Open shift" there. A manager sees who and may close them; a cashier is only told the counter is in use.
 	mine = {p["name"] for p in profiles}
 	others = frappe.get_all(
 		"POS Opening Entry",
 		filters={"status": "Open", "docstatus": 1, "user": ["!=", frappe.session.user], "pos_profile": ["in", list(mine) or [""]]},
 		fields=["name", "pos_profile", "user", "period_start_date"], order_by="period_start_date desc",
 	)
-	for o in others:
-		o["user_name"] = frappe.db.get_value("User", o.user, "full_name") or o.user
+	manager = _is_manager()
+	busy = {o.pos_profile for o in others}
+	for p in profiles:
+		p["busy"] = p["name"] in busy
+	if manager:
+		for o in others:
+			o["user_name"] = frappe.db.get_value("User", o.user, "full_name") or o.user
+	else:
+		others = []  # other people's sessions are not a cashier's business
 	return {
-		"others": others, "can_close_others": bool(frappe.has_permission("POS Closing Entry", "create")),
+		"others": others, "can_close_others": manager,
 		"profiles": profiles, "opening": opening, "invoice_type": _invoice_type(),
 		"can_setup": bool(frappe.has_permission("POS Profile", "create")),
 		"can_sell": bool(frappe.has_permission(_invoice_type(), "create")),
@@ -139,8 +161,7 @@ class _profile_read:
 		self.pos_profile = pos_profile
 
 	def __enter__(self):
-		users = frappe.get_all("POS Profile User", filters={"parent": self.pos_profile, "parenttype": "POS Profile"}, pluck="user")
-		if users and frappe.session.user not in users and "System Manager" not in frappe.get_roles():
+		if not _may_use(self.pos_profile) and "System Manager" not in frappe.get_roles():
 			frappe.throw(_("You are not allowed to use the POS Profile {0}").format(self.pos_profile), frappe.PermissionError)
 		self.user = frappe.session.user
 		frappe.set_user("Administrator")
@@ -174,6 +195,11 @@ def open_shift(pos_profile, balances=None):
 	"""balances: JSON [{mode_of_payment, opening_amount}]"""
 	from erpnext.selling.page.point_of_sale.point_of_sale import create_opening_voucher
 
+	if not _may_use(pos_profile):
+		frappe.throw(_("You are not a cashier on {0}. Ask a manager to add you to this counter.").format(pos_profile), frappe.PermissionError)
+	taken = frappe.db.get_value("POS Opening Entry", {"pos_profile": pos_profile, "status": "Open", "docstatus": 1, "user": ["!=", frappe.session.user]}, "user")
+	if taken:
+		frappe.throw(_("{0} is in use by another session.").format(pos_profile) + (" " + _("Opened by {0}.").format(taken) if _is_manager() else " " + _("Ask a manager if it should be closed.")))
 	company = frappe.db.get_value("POS Profile", pos_profile, "company")
 	rows = _loads(balances, [])
 	if not rows:

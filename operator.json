@@ -128,6 +128,7 @@
     "theme_mode": "System",
     "primary_color": "#0a6c8c",
     "accent_color": "",
+    "heart_color": null,
     "button_style": "Neutral",
     "corner_style": "Default",
     "font": "IBM Plex Sans",

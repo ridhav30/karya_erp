@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, History, CheckSquare, ShoppingCart, Users, FileText, ClipboardList, Truck, Receipt,
+  Factory, LayoutDashboard, History, CheckSquare, ShoppingCart, Users, FileText, ClipboardList, Truck, Receipt,
   ShoppingBag, Building2, ClipboardCheck, PackageCheck, FileSpreadsheet, Boxes, Package, Warehouse,
   ArrowLeftRight, BarChart3, Wallet, CreditCard, LineChart, PieChart, Network, BookText, FileMinus2, FilePlus2,
   FileBarChart, Settings2, Target, Banknote, Percent, CalendarRange,
@@ -80,6 +80,21 @@ const ALL_NAV = [
       { label: 'Batches', to: '/batches', icon: Layers3, doctype: 'Batch' },
       { label: 'Serial Numbers', to: '/serial-nos', icon: Barcode, doctype: 'Serial No' },
       { label: 'Stock Ledger', to: '/reports/stock-ledger', icon: ScrollTextIcon, doctype: 'Stock Ledger Entry' },
+    ],
+  },
+  {
+    label: 'Manufacturing', icon: Factory,
+    items: [
+      { label: 'Bill of Materials', to: '/bill-of-materials', icon: Layers3, doctype: 'BOM' },
+      { label: 'Work Orders', to: '/work-orders', icon: ClipboardList, doctype: 'Work Order' },
+      { label: 'Job Cards', to: '/job-cards', icon: ListChecks, doctype: 'Job Card' },
+      { label: 'Operations', to: '/operations', icon: SlidersHorizontal, doctype: 'Operation' },
+      { label: 'Workstations', to: '/workstations', icon: Factory, doctype: 'Workstation' },
+      { label: 'Production Plans', to: '/production-plans', icon: CalendarRange, doctype: 'Production Plan' },
+      { label: 'Subcontract POs', to: '/subcontract-purchase-orders', icon: ClipboardList, doctype: 'Purchase Order' },
+      { label: 'Subcontracting Orders', to: '/subcontracting-orders', icon: Truck, doctype: 'Subcontracting Order' },
+      { label: 'Subcontracting Receipts', to: '/subcontracting-receipts', icon: PackageCheck, doctype: 'Subcontracting Receipt' },
+      { label: 'Subcontracting BOMs', to: '/subcontracting-boms', icon: Layers3, doctype: 'Subcontracting BOM' },
     ],
   },
   {

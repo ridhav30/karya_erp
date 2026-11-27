@@ -15,7 +15,7 @@ NAV_DOCTYPES = [
 	"Lead", "Opportunity",
 	"Customer", "Quotation", "Sales Order", "Delivery Note", "Sales Invoice",
 	"Supplier", "Material Request", "Purchase Order", "Purchase Receipt", "Purchase Invoice",
-	"Item", "Warehouse", "Stock Entry", "Bin", "Stock Reconciliation", "Landed Cost Voucher", "Batch", "Serial No",
+	"Item", "Warehouse", "BOM", "Work Order", "Job Card", "Operation", "Workstation", "Production Plan", "Subcontracting Order", "Subcontracting Receipt", "Subcontracting BOM", "Stock Entry", "Bin", "Stock Reconciliation", "Landed Cost Voucher", "Batch", "Serial No",
 	"Stock Ledger Entry", "Item Price", "Price List", "Pricing Rule",
 	"Bank Account", "Bank", "Period Closing Voucher", "Budget", "Dunning", "Dunning Type",
 	"Payment Entry", "Journal Entry", "Account", "GL Entry", "Cost Center", "Mode of Payment",
@@ -121,6 +121,9 @@ def set_scope(company=None, branch=None):
 	return {"company": _default_company(), "branch": frappe.defaults.get_user_default("branch")}
 
 
+NOT_HISTORY = "coalesce(remarks, '') not like 'Historical import [%%'"
+
+
 def _sum(doctype, field, conditions, values):
 	if not _can_read(doctype):
 		return None
@@ -135,6 +138,16 @@ def _count(doctype, filters):
 	if not _can_read(doctype):
 		return None
 	return frappe.db.count(doctype, filters)
+
+
+@frappe.whitelist()
+def tab_counts(doctype, tabs):
+	"""How many records each status tab of a list holds, in one call. tabs: JSON [filters, ...] (Frappe filter lists);
+	returns the counts in the same order. Counted with the caller's own permissions, like the list itself."""
+	tabs = frappe.parse_json(tabs) if isinstance(tabs, str) else (tabs or [])
+	if not frappe.has_permission(doctype, "read"):
+		frappe.throw(_("You do not have permission to read {0}").format(doctype), frappe.PermissionError)
+	return [cint(frappe.get_list(doctype, filters=f or [], fields=[{"COUNT": "name", "as": "n"}], limit_page_length=0)[0].n) for f in tabs[:20]]
 
 
 @frappe.whitelist()
@@ -163,8 +176,10 @@ def dashboard():
 			"Purchase Invoice", "base_grand_total",
 			f"{company_cond} and is_return = 0 and posting_date >= %(month_start)s", values,
 		),
-		"receivable": _sum("Sales Invoice", "outstanding_amount", company_cond, values),
-		"payable": _sum("Purchase Invoice", "outstanding_amount", company_cond, values),
+		# Invoices loaded with "Sales / Purchase history" are for the reports only (never posted to the ledger, and their open
+		# balances come in as opening balances), so what is owed leaves them out.
+		"receivable": _sum("Sales Invoice", "outstanding_amount", f"{company_cond} and {NOT_HISTORY}", values),
+		"payable": _sum("Purchase Invoice", "outstanding_amount", f"{company_cond} and {NOT_HISTORY}", values),
 		"so_to_deliver": _count(
 			"Sales Order",
 			{"docstatus": 1, "status": ["in", ["To Deliver and Bill", "To Deliver"]], **({"company": company} if company else {})},
@@ -173,9 +188,11 @@ def dashboard():
 			"Purchase Order",
 			{"docstatus": 1, "status": ["in", ["To Receive and Bill", "To Receive"]], **({"company": company} if company else {})},
 		),
-		"overdue_invoices": _count(
-			"Sales Invoice",
-			{"docstatus": 1, "status": ["like", "Overdue%"], **({"company": company} if company else {})},
+		"overdue_invoices": (
+			frappe.db.sql(
+				f"select count(*) from `tabSales Invoice` where docstatus = 1 and status like 'Overdue%%' and {company_cond} and {NOT_HISTORY}", values,
+			)[0][0]
+			if _can_read("Sales Invoice") else None
 		),
 		"pending_approvals": pending,
 	}

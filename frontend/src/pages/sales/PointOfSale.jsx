@@ -6,6 +6,7 @@ import Button from '../../components/Button.jsx'
 import Modal from '../../components/Modal.jsx'
 import PageHeader from '../../components/PageHeader.jsx'
 import LinkField from '../../components/fields/LinkField.jsx'
+import Select from '../../components/fields/Select.jsx'
 import { useToast } from '../../app/toast-context.js'
 import { useCall } from '../../lib/useCall.js'
 import { errorText } from '../../lib/errors.js'
@@ -91,7 +92,8 @@ export function Setup({ s, onDone }) {
 export function OpenShiftModal({ s, onClose, onOpened }) {
   const call = useCall()
   const toast = useToast()
-  const [name, setName] = useState(s.profiles[0]?.name ?? '')
+  // Only the counters this person may use (a manager: all of them); a counter someone else has open comes last.
+  const [name, setName] = useState((s.profiles.find((p) => !p.busy) ?? s.profiles[0])?.name ?? '')
   const profile = s.profiles.find((p) => p.name === name)
   const [cash, setCash] = useState({})
   const [busy, setBusy] = useState(false)
@@ -111,12 +113,15 @@ export function OpenShiftModal({ s, onClose, onOpened }) {
   return (
     <>
       <Modal title="New session" subtitle="Open a shift on a counter to start selling" icon={Wallet} tone="emerald" onClose={onClose}
-        footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={Wallet} loading={busy} disabled={!profile || blocking.length > 0} onClick={open}>Open session</Button></>}>
+        footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={Wallet} loading={busy} disabled={!profile || profile.busy || blocking.length > 0} onClick={open}>Open session</Button></>}>
         <div className="space-y-4 text-xs">
           <label className="block"><span className="mb-1 block font-medium">{t('Counter')}</span>
-            <LinkField doctype="POS Profile" value={name} onChange={(v) => v && setName(v)} filters={{ disabled: 0 }} placeholder={t('Choose a counter')} />
+            <Select value={name} onChange={(e) => e.target.value && setName(e.target.value)} placeholder={t('Choose a counter')} aria-label={t('Counter')}>
+              {s.profiles.map((p) => <option key={p.name} value={p.name}>{p.name}{p.busy ? ` — ${t('in use')}` : ''}</option>)}
+            </Select>
           </label>
-          {!profile && <p className="text-danger">{t('You are not a cashier on this counter. Pick another one or add yourself to its cashiers.')}</p>}
+          {!s.profiles.length && <p className="text-danger">{s.can_setup ? t('No counter yet. Add one below.') : t('No counter is assigned to you. Ask a manager to add you as a cashier on a counter.')}</p>}
+          {profile?.busy && !blocking.length && <p className="rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2.5 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">{t('This counter is in use by another session. Ask a manager if it should be closed.')}</p>}
           {blocking.map((o) => (
             <div key={o.name} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2.5 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
               <span>{o.pos_profile} {t('is already open')}: <b>{o.user_name}</b> {t('opened a session on')} {formatDate(o.period_start_date)}. {s.can_close_others ? t('Close it to open a new one.') : t('Ask them, or a manager, to close it first.')}</span>
@@ -220,6 +225,12 @@ function Till({ s, profile, onClosed, modeSwitch }) {
         {modeSwitch}
         <Button icon={LogOut} onClick={() => setClosing(true)}>Close shift</Button>
       </PageHeader>
+      {s.opening.stale && (
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2.5 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+          <span>{t('This shift was opened on')} <b>{formatDate(s.opening.period_start_date)}</b>. {t('Sales are refused on a shift from an earlier day: close it, count the drawer, and open a new shift.')}</span>
+          <Button size="sm" onClick={() => setClosing(true)}>{t('Close shift')}</Button>
+        </div>
+      )}
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_30rem]">
         <section className="min-w-0 space-y-3">
@@ -301,7 +312,7 @@ function Till({ s, profile, onClosed, modeSwitch }) {
           </div>
           <div className="flex gap-2">
             <Button className="shrink-0" onClick={reset} disabled={!cart.length}>Clear</Button>
-            <Button variant="primary" className="min-w-0 flex-1" disabled={!cart.length || !shown || !s.can_sell} onClick={() => setPaying(true)}>Pay {shown ? money(shown.total) : ''}</Button>
+            <Button variant="primary" className="min-w-0 flex-1" disabled={!cart.length || !shown || !s.can_sell || s.opening.stale} onClick={() => setPaying(true)}>Pay {shown ? money(shown.total) : ''}</Button>
           </div>
         </aside>
       </div>

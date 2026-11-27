@@ -971,7 +971,8 @@ def _temporary_opening(company):
 
 def _opening_stock(rows, company, posting_date):
 	doc = frappe.new_doc("Stock Reconciliation")
-	doc.update({"company": company, "purpose": "Opening Stock", "posting_date": posting_date, "set_posting_time": 1, "expense_account": _temporary_opening(company)})
+	doc.update({"company": company, "purpose": "Opening Stock", "posting_date": posting_date, "set_posting_time": 1, "expense_account": _temporary_opening(company),
+		"cost_center": frappe.get_cached_value("Company", company, "cost_center")})
 	for r in rows:
 		v = r["values"]
 		doc.append("items", {"item_code": v["item_code"], "warehouse": v["warehouse"], "qty": v["qty"], "valuation_rate": v["valuation_rate"]})

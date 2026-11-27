@@ -51,6 +51,45 @@ export const MAKE = {
     (d) => submitted(d) && open(d) && pct(d.per_billed) < 100),
   receiptToBill: mapper('Purchase Invoice', 'erpnext.stock.doctype.purchase_receipt.purchase_receipt.make_purchase_invoice', 'purchase-invoices',
     (d) => submitted(d) && !Number(d.is_return) && pct(d.per_billed) < 100 && d.status !== 'Closed'),
+  // Manufacturing
+  bomToWorkOrder: {
+    label: 'Work Order', method: 'erpnext.manufacturing.doctype.work_order.work_order.make_work_order',
+    args: (doc) => ({ bom_no: doc.name, item: doc.item, qty: doc.quantity, company: doc.company }), target: 'work-orders',
+    when: (d) => submitted(d) && Number(d.is_active) === 1,
+  },
+  workOrderTransfer: {
+    label: 'Transfer materials', method: 'erpnext.manufacturing.doctype.work_order.work_order.make_stock_entry',
+    args: (doc) => ({ work_order_id: doc.name, purpose: 'Material Transfer for Manufacture', qty: Math.max(0, (Number(doc.qty) || 0) - (Number(doc.material_transferred_for_manufacturing) || 0)) }), target: 'stock-entries',
+    when: (d) => submitted(d) && !Number(d.skip_transfer) && ['Not Started', 'In Process', 'Stock Reserved', 'Stock Partially Reserved'].includes(d.status)
+      && (Number(d.material_transferred_for_manufacturing) || 0) < (Number(d.qty) || 0),
+  },
+  workOrderFinish: {
+    label: 'Finish (make goods)', method: 'erpnext.manufacturing.doctype.work_order.work_order.make_stock_entry',
+    args: (doc) => ({ work_order_id: doc.name, purpose: 'Manufacture', qty: Math.max(0, (Number(doc.qty) || 0) - (Number(doc.produced_qty) || 0)) }), target: 'stock-entries',
+    when: (d) => submitted(d) && ['Not Started', 'In Process', 'Stock Reserved', 'Stock Partially Reserved'].includes(d.status)
+      && (Number(d.produced_qty) || 0) < (Number(d.qty) || 0) && (Number(d.skip_transfer) || (Number(d.material_transferred_for_manufacturing) || 0) > 0),
+  },
+  jobCardTransfer: {
+    label: 'Transfer materials', method: 'erpnext.manufacturing.doctype.job_card.job_card.make_stock_entry',
+    args: (doc) => ({ source_name: doc.name }), target: 'stock-entries',
+    when: (d) => Number(d.docstatus) === 0 && (d.items?.length ?? 0) > 0 && !Number(d.skip_material_transfer) && (Number(d.transferred_qty) || 0) < (Number(d.for_quantity) || 0),
+  },
+  // Subcontracting: a purchase order for the service, raw materials sent to the supplier, finished goods received back
+  orderToSubcontracting: {
+    label: 'Subcontracting Order', method: 'erpnext.buying.doctype.purchase_order.purchase_order.make_subcontracting_order',
+    args: (doc) => ({ source_name: doc.name }), target: 'subcontracting-orders',
+    when: (d) => submitted(d) && Number(d.is_subcontracted) === 1 && open(d) && pct(d.per_received) < 100,
+  },
+  subcontractingSendMaterials: {
+    label: 'Send materials to supplier', method: 'erpnext.controllers.subcontracting_controller.make_rm_stock_entry',
+    args: (doc) => ({ subcontract_order: doc.name, order_doctype: 'Subcontracting Order' }), target: 'stock-entries',
+    when: (d) => submitted(d) && ['Open', 'Partially Received'].includes(d.status) && (d.supplied_items?.length ?? 0) > 0,
+  },
+  subcontractingReceive: {
+    label: 'Receive finished goods', method: 'erpnext.subcontracting.doctype.subcontracting_order.subcontracting_order.make_subcontracting_receipt',
+    args: (doc) => ({ source_name: doc.name }), target: 'subcontracting-receipts',
+    when: (d) => submitted(d) && ['Open', 'Partially Received'].includes(d.status) && pct(d.per_received) < 100,
+  },
   // Assets
   assetSale: {
     label: 'Sell', method: 'erpnext.assets.doctype.asset.asset.make_sales_invoice',

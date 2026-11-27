@@ -260,7 +260,7 @@ def share_document(doctype, name, room=None, user=None, message=None, print_form
 	"""
 	import re
 
-	me = _me()
+	_me()  # signed-in users only
 	doc = frappe.get_doc(doctype, name)
 	doc.check_permission("read")
 	if not room:

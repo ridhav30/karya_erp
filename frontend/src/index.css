@@ -37,6 +37,7 @@
   --surface-elevated: #eef2f4;
   --brand-mark: #c79a2e;      /* brass: the logo tile and the active-menu marker, nowhere else */
   --brand-mark-foreground: #1b1403;
+  --wishlist: #f43f5e;        /* the wishlist heart; the Operator can change it per app */
   --scroll-thumb: rgba(91, 106, 115, .28);
   --series-1: #2a78d6;        /* charts: categorical slot 1 (validated) */
   --series-2: #eb6834;
@@ -116,6 +117,7 @@
   --color-surface-elevated: var(--surface-elevated);
   --color-brand-mark: var(--brand-mark);
   --color-brand-mark-foreground: var(--brand-mark-foreground);
+  --color-wishlist: var(--wishlist);
   --font-sans: "IBM Plex Sans", "IBM Plex Sans Arabic", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Arabic", "Noto Kufi Arabic", Tahoma, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 

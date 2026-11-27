@@ -31,9 +31,9 @@ function Ticks({ m, d }) {
   const at = toDate(m.sent).getTime()
   const read = d?.seen_until && toDate(d.seen_until).getTime() >= at
   const got = d?.delivered_until && toDate(d.delivered_until).getTime() >= at
-  if (read) return <CheckCheck className="size-3.5 text-[#53bdeb]" aria-label="Read" />
-  if (got) return <CheckCheck className="size-3.5" aria-label="Delivered" />
-  return <Check className="size-3.5" aria-label="Sent" />
+  if (read) return <CheckCheck className="size-3.5 text-primary-foreground" aria-label="Read" />
+  if (got) return <CheckCheck className="size-3.5 opacity-60" aria-label="Delivered" />
+  return <Check className="size-3.5 opacity-60" aria-label="Sent" />
 }
 
 const DOC_ACCEPT = '.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.ppt,.pptx,.zip'
@@ -59,15 +59,15 @@ function AttachMenu({ onPick }) {
   return (
     <div ref={box} className="relative" onKeyDown={(e) => { if (e.key === 'Escape' && open) { e.preventDefault(); e.stopPropagation(); setOpen(false) } }}>
       <button type="button" onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} aria-label="Attach" title="Attach"
-        className={cn('pressable grid size-9 place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-foreground', open && 'bg-surface-2 text-foreground')}>
+        className={cn('pressable grid size-9 place-items-center rounded-lg text-primary/70 hover:bg-[color-mix(in_srgb,var(--primary)_14%,var(--background))] hover:text-foreground', open && 'bg-[color-mix(in_srgb,var(--primary)_14%,var(--background))] text-foreground')}>
         <Paperclip className="size-4" />
       </button>
       {open && (
         <div role="menu" className="absolute bottom-11 start-0 z-10 w-56 animate-fade-in overflow-hidden rounded-xl border bg-background p-1 shadow-xl">
           {items.map(({ label, hint, icon: Icon, ref }) => (
-            <button key={label} type="button" role="menuitem" onClick={() => choose(ref)} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-start hover:bg-surface-2">
+            <button key={label} type="button" role="menuitem" onClick={() => choose(ref)} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-start hover:bg-[color-mix(in_srgb,var(--primary)_14%,var(--background))]">
               <span className="grid size-8 place-items-center rounded-full bg-primary-soft text-primary"><Icon className="size-4" /></span>
-              <span className="min-w-0"><span className="block text-[13px] font-medium">{label}</span><span className="block text-[11px] text-muted">{hint}</span></span>
+              <span className="min-w-0"><span className="block text-[13px] font-medium">{label}</span><span className="block text-[11px] text-primary/70">{hint}</span></span>
             </button>
           ))}
         </div>
@@ -102,8 +102,8 @@ const loadPos = () => { try { const p = JSON.parse(localStorage.getItem(POS_KEY)
 const savePos = (p) => { try { localStorage.setItem(POS_KEY, JSON.stringify(p)) } catch { /* private mode */ } }
 
 /** Chat side panel: chats list, a conversation, and a new chat / group picker. Simple polling, no sockets needed. */
-export default function ChatPanel({ onClose, onUnread }) {
-  const [view, setView] = useState({ type: 'list' })
+export default function ChatPanel({ onClose, onUnread, openRoom }) {
+  const [view, setView] = useState(openRoom ? { type: 'room', room: openRoom } : { type: 'list' })
   // Desktop: the panel can be dragged by its header. The offset is applied straight to the element (no re-render per move),
   // may hang partly off the window (a strip of the header stays in view), remembered between visits, and a double click on the header puts it back.
   const box = useRef(null)
@@ -150,7 +150,7 @@ export default function ChatPanel({ onClose, onUnread }) {
   }, [onClose])
   // Portal to <body>: the top bar's backdrop-blur would otherwise be the containing block of `fixed`.
   return createPortal(
-    <section ref={box} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onDoubleClick={onDouble} role="region" aria-label="Chat" className="fixed inset-y-0 end-0 z-[70] flex w-full animate-fade-in flex-col overflow-hidden bg-background shadow-2xl sm:inset-y-3 sm:end-3 sm:w-[34rem] sm:rounded-3xl sm:border lg:w-[40rem]">
+    <section ref={box} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onDoubleClick={onDouble} role="region" aria-label="Chat" className="fixed inset-y-0 end-0 z-[70] flex w-full animate-fade-in flex-col overflow-hidden bg-background shadow-2xl sm:inset-y-3 sm:max-lg:bottom-[calc(var(--tabbar-height)+1rem)] sm:end-3 sm:w-[34rem] sm:rounded-3xl sm:border lg:w-[40rem]">
       {view.type === 'list' && <RoomList onClose={onClose} onOpen={(room, focus) => setView({ type: 'room', room, focus })} onNew={() => setView({ type: 'new' })} onGroup={() => setView({ type: 'group' })} />}
       {view.type === 'room' && <Conversation key={view.room.name} room={view.room} focus={view.focus} onBack={() => setView({ type: 'list' })} onClose={onClose} onUnread={onUnread} />}
       {view.type === 'new' && <NewChat onBack={() => setView({ type: 'list' })} onOpen={(room) => setView({ type: 'room', room })} />}
@@ -163,9 +163,9 @@ export default function ChatPanel({ onClose, onUnread }) {
 function Header({ children, onClose, onBack }) {
   return (
     <div data-chat-drag title="Drag to move · double-click to reset" className="flex h-14 shrink-0 select-none items-center gap-2 border-b px-3 sm:cursor-grab sm:active:cursor-grabbing">
-      {onBack && <button type="button" onClick={onBack} aria-label="Back" className="pressable grid size-8 place-items-center rounded-md text-muted hover:bg-surface-2 hover:text-foreground"><ArrowLeft className="size-4" /></button>}
+      {onBack && <button type="button" onClick={onBack} aria-label="Back" className="pressable grid size-8 place-items-center rounded-md text-primary/70 hover:bg-[color-mix(in_srgb,var(--primary)_14%,var(--background))] hover:text-foreground"><ArrowLeft className="size-4" /></button>}
       <div className="min-w-0 flex-1">{children}</div>
-      {onClose && <button type="button" onClick={onClose} aria-label="Close chat" title="Close" className="pressable grid size-8 place-items-center rounded-md text-muted hover:bg-surface-2 hover:text-foreground"><X className="size-4" /></button>}
+      {onClose && <button type="button" onClick={onClose} aria-label="Close chat" title="Close" className="pressable grid size-8 place-items-center rounded-md text-primary/70 hover:bg-[color-mix(in_srgb,var(--primary)_14%,var(--background))] hover:text-foreground"><X className="size-4" /></button>}
     </div>
   )
 }
@@ -191,33 +191,33 @@ function RoomList({ onClose, onOpen, onNew, onGroup }) {
       {all.length > 0 && <SearchBox value={q} onChange={setQ} placeholder="Search chats and messages" autoFocus={false} />}
       <div className="min-h-0 flex-1 overflow-y-auto">
         {error && <p className="p-4 text-xs text-danger">{errorText(error)}</p>}
-        {isLoading && !data && <div className="space-y-3 p-4">{[0, 1, 2].map((i) => <div key={i} className="h-12 animate-pulse rounded-md bg-surface-2" />)}</div>}
+        {isLoading && !data && <div className="space-y-3 p-4">{[0, 1, 2].map((i) => <div key={i} className="h-12 animate-pulse rounded-md bg-[color-mix(in_srgb,var(--primary)_14%,var(--background))]" />)}</div>}
         {data && all.length === 0 && (
-          <div className="grid place-items-center gap-3 p-10 text-center text-xs text-muted">
-            <MessageSquarePlus className="size-7 text-muted/60" />
+          <div className="grid place-items-center gap-3 p-10 text-center text-xs text-primary/70">
+            <MessageSquarePlus className="size-7 text-primary/60" />
             <p>No chats yet. Start one with a colleague.</p>
             <Button variant="primary" icon={Plus} onClick={onNew}>New chat</Button>
           </div>
         )}
         {rooms.map((r) => (
-          <button key={r.name} type="button" onClick={() => onOpen(r)} className="flex w-full items-center gap-3 border-b px-4 py-3 text-start transition-colors hover:bg-surface-2">
+          <button key={r.name} type="button" onClick={() => onOpen(r)} className="flex w-full items-center gap-3 border-b px-4 py-3 text-start transition-colors hover:bg-[color-mix(in_srgb,var(--primary)_14%,var(--background))]">
             <Avatar name={r.title} group={r.room_type === 'Group'} />
             <span className="min-w-0 flex-1">
               <span className="flex items-baseline justify-between gap-2">
                 <span className={cn('truncate text-[13px]', r.unread ? 'font-semibold' : 'font-medium')}>{r.title || 'Chat'}</span>
-                <span className="num shrink-0 text-[11px] text-muted">{short(r.last_message_at)}</span>
+                <span className="num shrink-0 text-[11px] text-primary/70">{short(r.last_message_at)}</span>
               </span>
               <span className="flex items-center justify-between gap-2">
-                <span className={cn('truncate text-xs', r.unread ? 'text-foreground' : 'text-muted')}>{r.last_message ? `${r.last_mine ? 'You: ' : r.room_type === 'Group' && r.last_sender_name ? `${r.last_sender_name}: ` : ''}${r.last_message}` : 'No messages yet'}</span>
+                <span className={cn('truncate text-xs', r.unread ? 'text-foreground' : 'text-primary/70')}>{r.last_message ? `${r.last_mine ? 'You: ' : r.room_type === 'Group' && r.last_sender_name ? `${r.last_sender_name}: ` : ''}${r.last_message}` : 'No messages yet'}</span>
                 {r.unread > 0 && <span className="num grid min-w-5 shrink-0 place-items-center rounded-full bg-primary px-1.5 text-[10px] font-semibold leading-5 text-primary-foreground">{r.unread}</span>}
               </span>
             </span>
           </button>
         ))}
-        {term && rooms.length === 0 && <p className="px-4 pt-4 text-xs text-muted">No chats match “{q.trim()}”.</p>}
+        {term && rooms.length === 0 && <p className="px-4 pt-4 text-xs text-primary/70">No chats match “{q.trim()}”.</p>}
         {term.length >= 2 && (
           <>
-            <p className="bg-surface px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">Messages</p>
+            <p className="bg-[color-mix(in_srgb,var(--primary)_8%,var(--background))] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-primary/70">Messages</p>
             <SearchResults q={q} showRoom onPick={(h) => { const r = all.find((x) => x.name === h.room); onOpen(r ?? { name: h.room, title: h.room_title, room_type: 'Direct' }, h.name) }} />
           </>
         )}
@@ -250,13 +250,13 @@ function NewChat({ onBack, onOpen }) {
       <Header onBack={onBack}><h2 className="text-sm font-semibold">New chat</h2></Header>
       <SearchBox value={q} onChange={setQ} />
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {isLoading && !people.length && <p className="p-4 text-xs text-muted">Loading…</p>}
-        {!isLoading && people.length === 0 && <p className="p-6 text-center text-xs text-muted">No one found.</p>}
+        {isLoading && !people.length && <p className="p-4 text-xs text-primary/70">Loading…</p>}
+        {!isLoading && people.length === 0 && <p className="p-6 text-center text-xs text-primary/70">No one found.</p>}
         {people.map((u) => (
-          <button key={u.name} type="button" disabled={busy === u.name} onClick={() => start(u)} className="flex w-full items-center gap-3 border-b px-4 py-2.5 text-start hover:bg-surface-2 disabled:opacity-60">
+          <button key={u.name} type="button" disabled={busy === u.name} onClick={() => start(u)} className="flex w-full items-center gap-3 border-b px-4 py-2.5 text-start hover:bg-[color-mix(in_srgb,var(--primary)_14%,var(--background))] disabled:opacity-60">
             <Avatar name={u.full_name || u.name} />
-            <span className="min-w-0"><span className="block truncate text-[13px] font-medium">{u.full_name || u.name}</span><span className="block truncate text-[11px] text-muted">{u.name}</span></span>
-            {busy === u.name && <Loader2 className="ms-auto size-4 animate-spin text-muted" />}
+            <span className="min-w-0"><span className="block truncate text-[13px] font-medium">{u.full_name || u.name}</span><span className="block truncate text-[11px] text-primary/70">{u.name}</span></span>
+            {busy === u.name && <Loader2 className="ms-auto size-4 animate-spin text-primary/70" />}
           </button>
         ))}
       </div>
@@ -276,22 +276,22 @@ function SearchResults({ q, room, onPick, showRoom }) {
   const term = q.trim()
   const { data, isLoading, error } = useFrappeGetCall('karya_erp.chat.search', term.length >= 2 ? { q: term, room: room || undefined } : undefined, term.length >= 2 ? `chat-search:${room || ''}:${term}` : null, { revalidateOnFocus: false, keepPreviousData: true })
   const results = term.length >= 2 ? data?.message?.results ?? [] : []
-  if (term.length < 2) return <p className="p-6 text-center text-xs text-muted">Type at least 2 letters to search messages{room ? ' in this chat' : ''}.</p>
+  if (term.length < 2) return <p className="p-6 text-center text-xs text-primary/70">Type at least 2 letters to search messages{room ? ' in this chat' : ''}.</p>
   if (error) return <p className="p-4 text-xs text-danger">{errorText(error)}</p>
-  if (isLoading && !data) return <div className="space-y-2 p-4">{[0, 1, 2].map((i) => <div key={i} className="h-10 animate-pulse rounded-md bg-surface-2" />)}</div>
-  if (!results.length) return <p className="p-6 text-center text-xs text-muted">No messages found for “{term}”.</p>
+  if (isLoading && !data) return <div className="space-y-2 p-4">{[0, 1, 2].map((i) => <div key={i} className="h-10 animate-pulse rounded-md bg-[color-mix(in_srgb,var(--primary)_14%,var(--background))]" />)}</div>
+  if (!results.length) return <p className="p-6 text-center text-xs text-primary/70">No messages found for “{term}”.</p>
   return (
     <>
       {results.map((h) => (
-        <button key={h.name} type="button" onClick={() => onPick(h)} className="block w-full border-b px-4 py-2.5 text-start hover:bg-surface-2">
+        <button key={h.name} type="button" onClick={() => onPick(h)} className="block w-full border-b px-4 py-2.5 text-start hover:bg-[color-mix(in_srgb,var(--primary)_14%,var(--background))]">
           <span className="flex items-baseline justify-between gap-2">
-            <span className="truncate text-[12px] font-semibold">{showRoom ? h.room_title : h.mine ? 'You' : h.sender_name}{showRoom && <span className="font-normal text-muted"> · {h.mine ? 'You' : h.sender_name || h.room_title}</span>}</span>
-            <span className="num shrink-0 text-[11px] text-muted">{short(h.sent)}</span>
+            <span className="truncate text-[12px] font-semibold">{showRoom ? h.room_title : h.mine ? 'You' : h.sender_name}{showRoom && <span className="font-normal text-primary/70"> · {h.mine ? 'You' : h.sender_name || h.room_title}</span>}</span>
+            <span className="num shrink-0 text-[11px] text-primary/70">{short(h.sent)}</span>
           </span>
-          <span className="line-clamp-2 text-xs text-muted"><Marked text={h.text} q={term} /></span>
+          <span className="line-clamp-2 text-xs text-primary/70"><Marked text={h.text} q={term} /></span>
         </button>
       ))}
-      {data?.message?.has_more && <p className="p-3 text-center text-[11px] text-muted">Showing the latest {results.length}. Search for more specific words to narrow it down.</p>}
+      {data?.message?.has_more && <p className="p-3 text-center text-[11px] text-primary/70">Showing the latest {results.length}. Search for more specific words to narrow it down.</p>}
     </>
   )
 }
@@ -299,7 +299,7 @@ function SearchResults({ q, room, onPick, showRoom }) {
 function SearchBox({ value, onChange, placeholder = 'Search people', autoFocus = true }) {
   return (
     <label className="relative block shrink-0 border-b p-3">
-      <Search className="pointer-events-none absolute start-5.5 top-1/2 size-3.5 -translate-y-1/2 text-muted" />
+      <Search className="pointer-events-none absolute start-5.5 top-1/2 size-3.5 -translate-y-1/2 text-primary/70" />
       <input className="input h-9 ps-8" placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} autoFocus={autoFocus} />
     </label>
   )
@@ -334,7 +334,7 @@ function NewGroup({ onBack, onOpen }) {
       <SearchBox value={q} onChange={setQ} />
       <div className="min-h-0 flex-1 overflow-y-auto">
         {people.map((u) => (
-          <label key={u.name} className="flex cursor-pointer items-center gap-3 border-b px-4 py-2.5 hover:bg-surface-2">
+          <label key={u.name} className="flex cursor-pointer items-center gap-3 border-b px-4 py-2.5 hover:bg-[color-mix(in_srgb,var(--primary)_14%,var(--background))]">
             <input type="checkbox" checked={Boolean(picked[u.name])} onChange={() => setPicked((p) => (p[u.name] ? Object.fromEntries(Object.entries(p).filter(([k]) => k !== u.name)) : { ...p, [u.name]: u }))} className="size-3.5 accent-[var(--primary)]" />
             <Avatar name={u.full_name || u.name} size="size-8" />
             <span className="min-w-0 text-[13px] font-medium"><span className="block truncate">{u.full_name || u.name}</span></span>
@@ -471,10 +471,10 @@ function Conversation({ room, focus, onBack, onClose, onUnread }) {
           <Avatar name={room.title} group={room.room_type === 'Group'} size="size-8" />
           <div className="min-w-0">
             <h2 className="truncate text-sm font-semibold">{room.title || 'Chat'}</h2>
-            {room.room_type === 'Group' && members.length > 0 && <p className="truncate text-[11px] text-muted">{members.join(', ')}</p>}
+            {room.room_type === 'Group' && members.length > 0 && <p className="truncate text-[11px] text-primary/70">{members.join(', ')}</p>}
           </div>
           <button type="button" onClick={() => { setSearching((v) => !v); setQ('') }} aria-label="Search in this chat" title="Search in this chat" aria-pressed={searching}
-            className={cn('pressable ms-auto grid size-8 place-items-center rounded-md text-muted hover:bg-surface-2 hover:text-foreground', searching && 'bg-surface-2 text-foreground')}><Search className="size-4" /></button>
+            className={cn('pressable ms-auto grid size-8 place-items-center rounded-md text-primary/70 hover:bg-[color-mix(in_srgb,var(--primary)_14%,var(--background))] hover:text-foreground', searching && 'bg-[color-mix(in_srgb,var(--primary)_14%,var(--background))] text-foreground')}><Search className="size-4" /></button>
         </div>
       </Header>
       {searching && <SearchBox value={q} onChange={setQ} placeholder="Search in this chat" />}
@@ -484,52 +484,52 @@ function Conversation({ room, focus, onBack, onClose, onUnread }) {
         </div>
       )}
 
-      <div ref={scroller} hidden={searching} onScroll={(e) => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; if (el.scrollTop < 40 && more && !loadingOlder) loadOlder() }} className="min-h-0 flex-1 space-y-1 overflow-y-auto bg-[#efeae2] px-4 py-3 dark:bg-[#0b141a]">
+      <div ref={scroller} hidden={searching} onScroll={(e) => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; if (el.scrollTop < 40 && more && !loadingOlder) loadOlder() }} className="min-h-0 flex-1 space-y-1 overflow-y-auto bg-background px-4 py-3">
         {more && <div className="pb-2 text-center"><Button size="sm" loading={loadingOlder} onClick={loadOlder}>Load previous messages</Button></div>}
         {latest.error && <p className="p-3 text-xs text-danger">{errorText(latest.error)}</p>}
-        {latest.isLoading && !d && <div className="grid place-items-center p-8"><Loader2 className="size-5 animate-spin text-muted" /></div>}
-        {d && !more && msgs.length > 0 && <p className="pb-2 text-center text-[11px] text-[#667781]">Start of the conversation</p>}
-        {d && msgs.length === 0 && <p className="p-8 text-center text-xs text-muted">Say hello 👋</p>}
+        {latest.isLoading && !d && <div className="grid place-items-center p-8"><Loader2 className="size-5 animate-spin text-primary/70" /></div>}
+        {d && !more && msgs.length > 0 && <p className="pb-2 text-center text-[11px] text-primary/70">Start of the conversation</p>}
+        {d && msgs.length === 0 && <p className="p-8 text-center text-xs text-primary/70">Say hello 👋</p>}
         {msgs.map((m, i) => {
           const newDay = i === 0 || dayOf(msgs[i - 1].sent) !== dayOf(m.sent)
           const showName = room.room_type === 'Group' && !m.mine && (newDay || msgs[i - 1].sender !== m.sender)
           return (
-            <div key={m.name} data-msg={m.name} className={cn('group/msg -mx-4 px-4 py-0.5 transition-colors duration-500', flash === m.name && 'bg-[#53bdeb]/30')}>
-              {newDay && <div className="my-3 text-center"><span className="rounded-lg bg-white/90 px-3 py-1 text-[11px] font-medium text-[#54656f] shadow-sm dark:bg-[#182229] dark:text-[#8696a0]">{dayLabel(m.sent)}</span></div>}
+            <div key={m.name} data-msg={m.name} className={cn('group/msg -mx-4 px-4 py-0.5 transition-colors duration-500', flash === m.name && 'bg-primary/25')}>
+              {newDay && <div className="my-3 text-center"><span className="rounded-lg bg-background/90 px-3 py-1 text-[11px] font-medium text-primary/70 shadow-sm">{dayLabel(m.sent)}</span></div>}
               <div className={cn('flex items-center gap-1', m.mine ? 'flex-row-reverse justify-start' : 'justify-start', i > 0 && !newDay && msgs[i - 1].sender === m.sender ? 'mt-0.5' : 'mt-2')}>
-                <div className={cn('max-w-[80%] min-w-16 rounded-lg px-2.5 pb-1 pt-1.5 text-[14px] leading-snug text-[#111b21] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] dark:text-[#e9edef]', m.mine ? 'rounded-tr-none bg-[#d9fdd3] dark:bg-[#005c4b]' : 'rounded-tl-none bg-white dark:bg-[#202c33]')}>
+                <div className={cn('max-w-[80%] min-w-16 rounded-lg px-2.5 pb-1 pt-1.5 text-[14px] leading-snug shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]', m.mine ? 'rounded-tr-none bg-primary text-primary-foreground' : 'rounded-tl-none border border-primary/20 bg-background')}>
                   {m.reply && (
-                    <button type="button" onClick={() => jumpTo(m.reply.name)} className={cn('mb-1 flex w-full items-stretch gap-0 overflow-hidden rounded-md bg-black/5 text-start dark:bg-white/10')}>
-                      <span className={cn('w-1 shrink-0', m.reply.mine ? 'bg-[#06cf9c]' : 'bg-[#53bdeb]')} />
+                    <button type="button" onClick={() => jumpTo(m.reply.name)} className={cn('mb-1 flex w-full items-stretch gap-0 overflow-hidden rounded-md text-start', m.mine ? 'bg-white/20' : 'bg-primary/10')}>
+                      <span className={cn('w-1 shrink-0', m.reply.mine ? 'bg-success' : m.mine ? 'bg-white' : 'bg-primary')} />
                       <span className="min-w-0 flex-1 px-2 py-1">
-                        <span className={cn('block truncate text-[12px] font-semibold', m.reply.mine ? 'text-[#06a07c]' : 'text-[#027eb5] dark:text-[#53bdeb]')}>{m.reply.mine ? 'You' : m.reply.sender_name}</span>
-                        <span className="block truncate text-[12px] text-[#667781] dark:text-[#8696a0]">{m.reply.text}</span>
+                        <span className={cn('block truncate text-[12px] font-semibold', m.mine ? 'text-primary-foreground' : m.reply.mine ? 'text-success' : 'text-primary')}>{m.reply.mine ? 'You' : m.reply.sender_name}</span>
+                        <span className={cn('block truncate text-[12px]', m.mine ? 'text-primary-foreground/80' : 'text-primary/70')}>{m.reply.text}</span>
                       </span>
                     </button>
                   )}
-                  {showName && <div className="mb-0.5 text-[12px] font-semibold text-[#027eb5] dark:text-[#53bdeb]">{m.sender_name}</div>}
+                  {showName && <div className="mb-0.5 text-[12px] font-semibold text-primary">{m.sender_name}</div>}
                   {m.document && (
-                    <button type="button" onClick={() => openDoc(m.document)} className="mb-1 flex w-full items-center gap-2.5 rounded-md bg-black/5 p-2 text-start hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15">
-                      <span className="grid size-9 shrink-0 place-items-center rounded-md bg-primary-soft text-primary"><FileText className="size-4.5" /></span>
+                    <button type="button" onClick={() => openDoc(m.document)} className={cn('mb-1 flex w-full items-center gap-2.5 rounded-md p-2 text-start', m.mine ? 'bg-white/20 hover:bg-white/30' : 'bg-primary/10 hover:bg-primary/20')}>
+                      <span className="grid size-9 shrink-0 place-items-center rounded-md bg-white text-primary"><FileText className="size-4.5" /></span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[11px] font-medium uppercase tracking-wide text-[#667781] dark:text-[#8696a0]">{m.document.doctype}</span>
+                        <span className={cn('block truncate text-[11px] font-medium uppercase tracking-wide', m.mine ? 'text-primary-foreground/80' : 'text-primary/70')}>{m.document.doctype}</span>
                         <span className="block truncate text-[13px] font-semibold">{m.document.name}</span>
-                        {m.document.label && <span className="block truncate text-[12px] text-[#667781] dark:text-[#8696a0]">{m.document.label}</span>}
+                        {m.document.label && <span className={cn('block truncate text-[12px]', m.mine ? 'text-primary-foreground/80' : 'text-primary/70')}>{m.document.label}</span>}
                       </span>
-                      <span className="shrink-0 text-[11px] font-medium text-[#027eb5] dark:text-[#53bdeb]">Open</span>
+                      <span className="shrink-0 text-[11px] font-semibold">Open</span>
                     </button>
                   )}
                   {m.file_url && (m.is_image
                     ? <button type="button" onClick={() => setViewer({ url: m.file_url, name: m.file_name })} aria-label={`Open photo ${m.file_name}`} className="mb-1 block"><img src={m.file_url} alt={m.file_name} className="max-h-72 w-full rounded-md object-cover" loading="lazy" /></button>
                     : (
-                      <a href={m.file_url} target="_blank" rel="noreferrer" className={cn('mb-1 flex items-center gap-2 rounded-lg px-2.5 py-2', m.mine ? 'bg-black/5 dark:bg-white/10' : 'bg-black/5 dark:bg-white/10')}>
+                      <a href={m.file_url} target="_blank" rel="noreferrer" className={cn('mb-1 flex items-center gap-2 rounded-lg px-2.5 py-2', m.mine ? 'bg-white/20' : 'bg-primary/10')}>
                         <FileText className="size-5 shrink-0" /><span className="min-w-0 flex-1 truncate font-medium">{m.file_name}</span><Download className="size-4 shrink-0 opacity-70" />
                       </a>
                     ))}
                   {m.message && <p className="whitespace-pre-wrap break-words">{m.message}</p>}
-                  <div className="num mt-0.5 flex items-center justify-end gap-1 text-[11px] text-[#667781] dark:text-[#8696a0]">{hhmm(m.sent)}{m.mine && <Ticks m={m} d={d} />}</div>
+                  <div className={cn('num mt-0.5 flex items-center justify-end gap-1 text-[11px]', m.mine ? 'text-primary-foreground/75' : 'text-primary/70')}>{hhmm(m.sent)}{m.mine && <Ticks m={m} d={d} />}</div>
                 </div>
-                <button type="button" onClick={() => startReply(m)} aria-label="Reply" title="Reply" className="pressable grid size-7 shrink-0 place-items-center rounded-full bg-white/80 text-[#54656f] opacity-0 shadow-sm transition-opacity hover:bg-white focus-visible:opacity-100 group-hover/msg:opacity-100 dark:bg-[#202c33] dark:text-[#8696a0]"><CornerUpLeft className="size-3.5" /></button>
+                <button type="button" onClick={() => startReply(m)} aria-label="Reply" title="Reply" className="pressable grid size-7 shrink-0 place-items-center rounded-full bg-background/80 text-primary/70 opacity-0 shadow-sm transition-opacity hover:bg-background focus-visible:opacity-100 group-hover/msg:opacity-100 dark:text-primary/70"><CornerUpLeft className="size-3.5" /></button>
               </div>
             </div>
           )
@@ -538,20 +538,20 @@ function Conversation({ room, focus, onBack, onClose, onUnread }) {
 
       <div className="shrink-0 space-y-2 border-t p-3 safe-b">
         {replyTo && (
-          <div className="flex items-stretch overflow-hidden rounded-lg border bg-surface-2 text-xs">
-            <span className={cn('w-1 shrink-0', replyTo.mine ? 'bg-[#06cf9c]' : 'bg-[#53bdeb]')} />
+          <div className="flex items-stretch overflow-hidden rounded-lg border bg-[color-mix(in_srgb,var(--primary)_14%,var(--background))] text-xs">
+            <span className={cn('w-1 shrink-0', replyTo.mine ? 'bg-success' : 'bg-primary')} />
             <span className="min-w-0 flex-1 px-2.5 py-1.5">
               <span className="block truncate font-semibold text-primary">Replying to {replyTo.mine ? 'yourself' : replyTo.sender_name}</span>
-              <span className="block truncate text-muted">{replyTo.message || `📎 ${replyTo.file_name}`}</span>
+              <span className="block truncate text-primary/70">{replyTo.message || `📎 ${replyTo.file_name}`}</span>
             </span>
-            <button type="button" onClick={() => setReplyTo(null)} aria-label="Cancel reply" className="px-2.5 text-muted hover:text-danger"><X className="size-4" /></button>
+            <button type="button" onClick={() => setReplyTo(null)} aria-label="Cancel reply" className="px-2.5 text-primary/70 hover:text-danger"><X className="size-4" /></button>
           </div>
         )}
         {(file || uploading) && (
-          <div className="flex items-center gap-2.5 rounded-lg border bg-surface-2 p-2 text-xs">
+          <div className="flex items-center gap-2.5 rounded-lg border bg-[color-mix(in_srgb,var(--primary)_14%,var(--background))] p-2 text-xs">
             {preview ? <img src={preview} alt="" className="size-14 shrink-0 rounded-md object-cover" /> : uploading ? <Loader2 className="size-4 animate-spin" /> : <Paperclip className="size-4" />}
             <span className="min-w-0 flex-1 truncate">{uploading ? 'Uploading…' : file.name}</span>
-            {file && <button type="button" onClick={clearFile} aria-label="Remove attachment" className="text-muted hover:text-danger"><X className="size-4" /></button>}
+            {file && <button type="button" onClick={clearFile} aria-label="Remove attachment" className="text-primary/70 hover:text-danger"><X className="size-4" /></button>}
           </div>
         )}
         <div className="flex items-end gap-2">
@@ -564,7 +564,7 @@ function Conversation({ room, focus, onBack, onClose, onUnread }) {
           />
           <Button variant="primary" icon={SendHorizontal} aria-label="Send" onClick={send} loading={sending} disabled={uploading || (!text.trim() && !file)} className="size-9 px-0" />
         </div>
-        <p className="text-[10.5px] text-muted">Enter to send · Shift+Enter for a new line · paste a photo to attach it</p>
+        <p className="text-[10.5px] text-primary/70">Enter to send · Shift+Enter for a new line · paste a photo to attach it</p>
       </div>
       {viewer && (
         <Modal title={viewer.name || 'Photo'} icon={ImagePlus} size="lg" onClose={() => setViewer(null)}

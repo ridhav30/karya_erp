@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation, useMatches } from 'react-router'
+import { Spinner } from '../components/Spinner.jsx'
 import Sidebar from './Sidebar.jsx'
 import Topbar from './Topbar.jsx'
 import MobileTabBar from './MobileTabBar.jsx'
@@ -78,11 +79,11 @@ export default function AppShell() {
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar onMenu={() => setMobileOpen(true)} />
+        <Topbar />
         <main ref={mainRef} className="scroll-area relative flex-1 overflow-x-hidden">
           {/* Keyed by route: each page fades up on navigation */}
           <div key={routeKey} className="w-full animate-page-in space-y-4 p-3 sm:p-6">
-            <Outlet />
+            <Suspense fallback={<div className="flex justify-center py-20"><Spinner className="size-5 text-primary" /></div>}><Outlet /></Suspense>
           </div>
         </main>
         <MobileTabBar onMenu={() => setMobileOpen(true)} />

@@ -105,7 +105,7 @@ def defaults(doctype, name):
 
 @frappe.whitelist(methods=["POST"])
 def send_email(doctype, name, recipients, subject, message, cc=None, print_format=None, letterhead=None, attach_pdf=1):
-	doc = _doc(doctype, name)
+	_doc(doctype, name)  # checks the person may read and email this document
 	if not frappe.db.exists("Email Account", {"enable_outgoing": 1}):
 		frappe.throw(_("No outgoing email account — set one up in Settings → Email"))
 	recipients = ",".join(r.strip() for r in re.split(r"[,;\s]+", recipients or "") if r.strip())

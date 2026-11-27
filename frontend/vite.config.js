@@ -18,10 +18,13 @@ export default defineConfig(({ command }) => ({
     port: 5173,
     // Forward Frappe routes to the bench web server during `npm run dev`
     proxy: {
-      '^/(app|api|assets|files|private|method|login)': {
+      // Frappe's own static files are /assets/<app>/…; a bare /assets/new or /assets/<ID> is this app's Asset screen, so it stays here.
+      '^/(app|api|files|private|method|login|assets/[a-z_]+/)': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: false, // keep the Host (site1.local): Frappe picks the site from it
       },
+      // Live updates (kitchen screens): the realtime server only accepts its own origin, so dev goes through this proxy.
+      '/socket.io': { target: 'http://127.0.0.1:9000', ws: true, changeOrigin: false },
     },
   },
   build: {

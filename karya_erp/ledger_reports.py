@@ -200,10 +200,12 @@ def _open_items(party_type, f, company, q, values):
 		values["ur_party"] = allowed
 		cond.append("ple.party in %(ur_party)s")
 	cond += _search(q, ["ple.party", "ple.against_voucher_no"], values)
+	# An unallocated payment (an advance, or a credit-side journal) is money paid, not an invoice: it shows under Paid, as in ERPNext.
 	return f"""select ple.party, ple.against_voucher_type as voucher_type, ple.against_voucher_no as voucher_no,
 			coalesce(min(case when ple.voucher_no = ple.against_voucher_no then ple.posting_date end), min(ple.posting_date)) as posting_date,
 			max(case when ple.voucher_no = ple.against_voucher_no then ple.due_date end) as due_date,
-			{sign} * sum(case when ple.voucher_no = ple.against_voucher_no then ple.amount else 0 end) as invoiced,
+			{sign} * sum(case when ple.voucher_no = ple.against_voucher_no
+				and not (ple.voucher_type = 'Payment Entry' or (ple.voucher_type = 'Journal Entry' and {sign} * ple.amount < 0)) then ple.amount else 0 end) as invoiced,
 			{sign} * -sum(case when ple.voucher_no != ple.against_voucher_no and ple.voucher_type in ('Sales Invoice', 'Purchase Invoice') then ple.amount else 0 end) as credit_note,
 			{sign} * sum(ple.amount) as outstanding
 		from `tabPayment Ledger Entry` ple where {" and ".join(cond)}

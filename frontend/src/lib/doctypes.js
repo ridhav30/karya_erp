@@ -76,13 +76,13 @@ export const DOCTYPES = {
   items: {
     doctype: 'Item', title: 'Items', single: 'Item', titleField: 'item_name', statusFromDisabled: true,
     list: ['item_code', 'item_name', 'item_group', 'stock_uom', { field: 'is_stock_item', label: 'Stock item' }, { field: 'disabled', type: 'Active' }],
-    columns: ['item_code', 'item_name', 'item_group', 'stock_uom', 'is_stock_item', 'valuation_rate', 'brand', 'disabled'], // up to 8 shown by default; the rest via “Columns”
+    columns: ['item_code', 'item_name', 'item_group', 'stock_uom', 'is_stock_item', 'brand', 'disabled'], // the item's own valuation rate is only an opening figure, so it is not a default column; up to 8 shown by default; the rest via “Columns”
     tabs: activeTabs,
     search: ['name', 'item_name', 'item_group'],
     sections: [
       // One default tax per item (stored as the item's first row in its Taxes table); invoices pick it up when the item is added.
       { title: 'Item', fields: ['item_code', 'item_name', 'item_group', 'stock_uom', { field: 'image', label: 'Picture (shown on POS cards)' }, { field: 'item_tax_template', child: 'taxes', type: 'Link', options: 'Item Tax Template', label: 'Tax template', filters: { disabled: 0 } }, 'description'] },
-      { title: 'Settings', fields: ['is_stock_item', 'is_sales_item', 'is_purchase_item', { field: 'standard_rate', onlyNew: true }, 'valuation_rate', 'disabled'] },
+      { title: 'Settings', fields: ['is_stock_item', 'is_sales_item', 'is_purchase_item', { field: 'is_sub_contracted_item', label: 'Made by a subcontractor' }, { field: 'standard_rate', onlyNew: true }, { field: 'valuation_rate', label: 'Opening valuation rate (used only until there is stock)' }, 'disabled'] },
       { title: 'Fixed asset', collapsed: true, fields: ['is_fixed_asset', { field: 'asset_category', when: (d) => Number(d.is_fixed_asset) }, { field: 'auto_create_assets', when: (d) => Number(d.is_fixed_asset) }] },
     ],
     // A fixed asset is never a stock item.
@@ -159,15 +159,295 @@ export const DOCTYPES = {
   },
 
   /* ---------------- Stock (more) ---------------- */
+  // Recipe / formula: what goes into making one finished item. ERPNext fills each row's unit and rate and the costs on save.
+  'bill-of-materials': {
+    doctype: 'BOM', title: 'Bills of Materials', single: 'Bill of Materials', titleField: 'item_name',
+    list: ['name', 'item', 'quantity', 'uom', 'total_cost', { field: 'is_default', label: 'Default' }, { field: 'is_active', label: 'Active' }, { field: 'docstatus', type: 'DocStatus', label: 'Status' }],
+    columns: ['name', 'item', 'item_name', 'quantity', 'uom', 'raw_material_cost', 'total_cost', 'is_default', 'is_active', 'docstatus'], // up to 8 shown by default; the rest via “Columns”
+    tabs: [
+      { label: 'All', filters: [] },
+      { label: 'Draft', filters: [['docstatus', '=', 0]] },
+      { label: 'Active', filters: [['docstatus', '=', 1], ['is_active', '=', 1]] },
+      { label: 'Inactive', filters: [['docstatus', '=', 1], ['is_active', '=', 0]] },
+      { label: 'Cancelled', filters: [['docstatus', '=', 2]] },
+    ],
+    search: ['name', 'item', 'item_name'],
+    sections: [
+      { title: 'Finished item', fields: ['item', 'quantity', { field: 'uom', readOnly: true }, 'company', 'is_active', 'is_default', 'with_operations', { field: 'transfer_material_against', label: 'Send materials against', when: (d) => Number(d.with_operations) }] },
+      { title: 'Costing', fields: ['currency', 'rm_cost_as_per', { field: 'buying_price_list', when: (d) => d.rm_cost_as_per === 'Price List' }, { field: 'raw_material_cost', readOnly: true }, { field: 'operating_cost', readOnly: true }, { field: 'total_cost', readOnly: true }] },
+    ],
+    tables: [
+      {
+        field: 'items', title: 'Raw materials — what goes into the quantity above',
+        columns: [{ field: 'item_code', reqd: true }, { field: 'qty', reqd: true }, { field: 'uom', reqd: false }, { field: 'rate', reqd: false }, { field: 'amount', readOnly: true }],
+        sum: ['amount'], startRows: 1, newRow: () => ({ qty: 1 }),
+        empty: 'Add every item used. The unit and rate are filled when you save (from the cost basis above).',
+      },
+      {
+        field: 'operations', title: 'Operations', when: (d) => Number(d.with_operations),
+        columns: [{ field: 'operation', reqd: true }, 'workstation', 'time_in_mins', { field: 'operating_cost', readOnly: true }],
+        sum: ['operating_cost'], newRow: () => ({}),
+      },
+    ],
+    make: [MAKE.bomToWorkOrder],
+    validate: (d) => ((d.items ?? []).some((r) => r.item_code) ? ((d.items ?? []).some((r) => r.item_code === d.item) ? 'The finished item cannot also be one of its own raw materials.' : null) : 'Add at least one raw material.'),
+    defaults: (boot) => ({ company: boot.company, currency: boot.currency, quantity: 1, is_active: 1, is_default: 1, rm_cost_as_per: 'Valuation Rate' }),
+  },
+  // Production: make N of an item from its BOM. Transfer the materials to work in progress, then finish to book the goods into stock.
+  'work-orders': {
+    doctype: 'Work Order', title: 'Work Orders', single: 'Work Order', titleField: 'item_name',
+    list: ['name', 'production_item', 'qty', 'produced_qty', 'planned_start_date', { field: 'status', type: 'Status' }],
+    columns: ['name', 'production_item', 'item_name', 'qty', 'material_transferred_for_manufacturing', 'produced_qty', 'planned_start_date', 'status'], // up to 8 shown by default; the rest via “Columns”
+    tabs: [
+      { label: 'All', filters: [] },
+      { label: 'Draft', filters: [['docstatus', '=', 0]] },
+      { label: 'Not Started', filters: [['status', '=', 'Not Started']] },
+      { label: 'In Process', filters: [['status', '=', 'In Process']] },
+      { label: 'Completed', filters: [['status', '=', 'Completed']] },
+      { label: 'Stopped', filters: [['status', 'in', ['Stopped', 'Closed']]] },
+    ],
+    search: ['name', 'production_item', 'item_name'],
+    sort: 'creation desc',
+    sections: [
+      { title: 'What to make', fields: ['production_item', { field: 'bom_no', filters: (d) => ({ item: d.production_item, docstatus: 1, is_active: 1 }) }, 'qty', 'company', 'planned_start_date', 'expected_delivery_date', { field: 'transfer_material_against', label: 'Send materials against', when: (d) => (d.operations?.length ?? 0) > 0 }] },
+      { title: 'Warehouses', fields: [{ field: 'source_warehouse', filters: warehouseFilter }, { field: 'wip_warehouse', filters: warehouseFilter }, { field: 'fg_warehouse', filters: warehouseFilter }, 'skip_transfer'] },
+      { title: 'Progress', when: (d) => Number(d.docstatus) > 0, fields: [{ field: 'material_transferred_for_manufacturing', readOnly: true }, { field: 'produced_qty', readOnly: true }, { field: 'status', readOnly: true }, { field: 'actual_start_date', readOnly: true }, { field: 'actual_end_date', readOnly: true }] },
+    ],
+    tables: [
+      {
+        field: 'required_items', title: 'Raw materials needed',
+        columns: [{ field: 'item_code', reqd: true }, 'source_warehouse', { field: 'required_qty', reqd: true }, { field: 'available_qty_at_source_warehouse', label: 'In stock', readOnly: true }, { field: 'transferred_qty', label: 'Transferred', readOnly: true }, { field: 'consumed_qty', label: 'Used', readOnly: true }],
+        newRow: () => ({}), empty: 'Pick the item and BOM above: the raw materials load by themselves.',
+      },
+      {
+        field: 'operations', title: 'Operations', when: (d) => (d.operations?.length ?? 0) > 0,
+        columns: [{ field: 'operation', readOnly: true }, { field: 'workstation', readOnly: true }, { field: 'time_in_mins', label: 'Minutes', readOnly: true }, { field: 'completed_qty', label: 'Done', readOnly: true }, { field: 'status', readOnly: true }],
+        addRows: false,
+      },
+    ],
+    // Choosing the item brings its default BOM; the item, BOM or quantity brings the raw materials of the whole run.
+    onChange: async (field, value, doc, { call }) => {
+      const patch = {}
+      let item = doc.production_item
+      let bom = doc.bom_no
+      if (field === 'production_item') {
+        if (!value) return { bom_no: null, required_items: [] }
+        item = value
+        try {
+          const r = await call.get('erpnext.manufacturing.doctype.work_order.work_order.get_item_details', { item: value })
+          const m = r?.message ?? {}
+          bom = m.bom_no || null
+          Object.assign(patch, { bom_no: bom, stock_uom: m.stock_uom, description: m.description })
+        } catch { /* the form shows what is missing on save */ }
+      } else if (!['bom_no', 'qty'].includes(field)) return null
+      else if (field === 'bom_no') bom = value
+      const qty = field === 'qty' ? value : doc.qty
+      if (!item || !bom || !(Number(qty) > 0)) return Object.keys(patch).length ? patch : null
+      try {
+        const r = await call.post('erpnext.manufacturing.doctype.work_order.work_order.make_work_order', { bom_no: bom, item, qty, company: doc.company })
+        const wo = r?.message ?? {}
+        patch.required_items = (wo.required_items ?? []).map((x) => ({ item_code: x.item_code, item_name: x.item_name, source_warehouse: x.source_warehouse, required_qty: x.required_qty, stock_uom: x.stock_uom, operation: x.operation, include_item_in_manufacturing: x.include_item_in_manufacturing, allow_alternative_item: x.allow_alternative_item }))
+        // The BOM's operations come with it (workstation, minutes, order), stripped of the row identity of the preview.
+        patch.operations = (wo.operations ?? []).map((o) => Object.fromEntries(Object.entries(o).filter(([k]) => !['name', 'owner', 'creation', 'modified', 'modified_by', 'docstatus', 'parent', 'parentfield', 'parenttype'].includes(k) && !k.startsWith('__'))))
+        // The company's default warehouses for production (set on the company), unless the person already chose.
+        try {
+          const dw = (await call.get('erpnext.manufacturing.doctype.work_order.work_order.get_default_warehouse', { company: doc.company }))?.message ?? {}
+          if (dw.wip_warehouse && !doc.wip_warehouse && !Number(doc.skip_transfer)) patch.wip_warehouse = dw.wip_warehouse
+          if (dw.fg_warehouse && !doc.fg_warehouse) patch.fg_warehouse = dw.fg_warehouse
+        } catch { /* fall back to what the BOM brought */ }
+        if (wo.fg_warehouse && !doc.fg_warehouse && !patch.fg_warehouse) patch.fg_warehouse = wo.fg_warehouse
+        if (wo.wip_warehouse && !doc.wip_warehouse && !patch.wip_warehouse) patch.wip_warehouse = wo.wip_warehouse
+        if (!patch.wip_warehouse && !doc.wip_warehouse && !Number(doc.skip_transfer)) {
+          // The company has no default work-in-progress warehouse set: use its "Work In Progress" warehouse, if there is one.
+          const w = await call.get('frappe.client.get_value', { doctype: 'Warehouse', filters: JSON.stringify({ company: doc.company, name: ['like', 'Work In Progress%'], is_group: 0 }), fieldname: 'name' })
+          if (w?.message?.name) patch.wip_warehouse = w.message.name
+        }
+      } catch { /* keep what the person typed */ }
+      return patch
+    },
+    make: [MAKE.workOrderTransfer, MAKE.workOrderFinish],
+    docActions: [
+      {
+        // ERPNext makes one job card per operation when the work order is submitted; this just opens them.
+        label: 'Job cards', icon: ListPlus,
+        when: (doc) => Number(doc.docstatus) === 1 && (doc.operations?.length ?? 0) > 0,
+        run: async ({ doc, navigate }) => navigate('/job-cards?q=' + encodeURIComponent(doc.name)),
+      },
+      {
+        label: 'Stop', icon: XIcon, success: 'Work order stopped', tone: 'danger',
+        when: (doc) => Number(doc.docstatus) === 1 && ['Not Started', 'In Process', 'Stock Reserved', 'Stock Partially Reserved'].includes(doc.status),
+        run: async ({ doc, call, mutate }) => { await call.post('erpnext.manufacturing.doctype.work_order.work_order.stop_unstop', { work_order: doc.name, status: 'Stopped' }); await mutate() },
+      },
+      {
+        label: 'Resume', icon: PlayCircle, success: 'Work order resumed',
+        when: (doc) => Number(doc.docstatus) === 1 && doc.status === 'Stopped',
+        run: async ({ doc, call, mutate }) => { await call.post('erpnext.manufacturing.doctype.work_order.work_order.stop_unstop', { work_order: doc.name, status: 'Resumed' }); await mutate() },
+      },
+    ],
+    validate: (d) => (!(Number(d.qty) > 0) ? 'Enter the quantity to make.' : (d.required_items ?? []).some((r) => r.item_code) ? null : 'Pick the item and its BOM so the raw materials load.'),
+    defaults: (boot) => ({ company: boot.company, qty: 1, planned_start_date: new Date().toLocaleString('sv-SE').replace('T', ' ') }),
+  },
+  'job-cards': {
+    doctype: 'Job Card', title: 'Job Cards', single: 'Job Card', titleField: 'operation',
+    list: ['name', 'work_order', 'production_item', 'operation', 'workstation', 'for_quantity', 'total_completed_qty', { field: 'status', type: 'Status' }],
+    columns: ['name', 'work_order', 'production_item', 'operation', 'workstation', 'for_quantity', 'total_completed_qty', 'status'], // up to 8 shown by default; the rest via “Columns”
+    tabs: [
+      { label: 'All', filters: [] },
+      { label: 'Open', filters: [['status', '=', 'Open']] },
+      { label: 'In progress', filters: [['status', 'in', ['Work In Progress', 'Material Transferred']]] },
+      { label: 'On hold', filters: [['status', '=', 'On Hold']] },
+      { label: 'Completed', filters: [['status', '=', 'Completed']] },
+    ],
+    search: ['name', 'work_order', 'production_item', 'operation'],
+    sort: 'creation desc',
+    sections: [
+      { title: 'Job', fields: [{ field: 'work_order', reqd: true }, { field: 'operation', reqd: true }, { field: 'workstation', reqd: true }, 'company', 'posting_date', 'for_quantity', 'wip_warehouse'] },
+      { title: 'Result', fields: [{ field: 'total_completed_qty', readOnly: true }, { field: 'total_time_in_mins', readOnly: true }, { field: 'status', readOnly: true }, 'remarks'] },
+    ],
+    tables: [
+      {
+        field: 'time_logs', title: 'Time spent — one row each time work is done',
+        columns: [{ field: 'from_time', reqd: true }, 'to_time', 'completed_qty', { field: 'time_in_mins', label: 'Minutes', readOnly: true }],
+        newRow: () => ({ from_time: new Date().toLocaleString('sv-SE') }), empty: 'Add a row when work starts; fill the end time and the quantity done. Submit when the full quantity is done.',
+      },
+      {
+        field: 'items', title: 'Raw materials for this operation', when: (d) => (d.items?.length ?? 0) > 0,
+        columns: [{ field: 'item_code', readOnly: true }, 'source_warehouse', { field: 'required_qty', readOnly: true }, { field: 'transferred_qty', label: 'Sent', readOnly: true }, { field: 'consumed_qty', label: 'Used', readOnly: true }],
+        addRows: false,
+      },
+    ],
+    make: [MAKE.jobCardTransfer],
+    defaults: (boot) => ({ company: boot.company, posting_date: today() }),
+  },
+  operations: {
+    doctype: 'Operation', title: 'Operations', single: 'Operation', titleField: 'name',
+    list: ['name', 'workstation', 'description'],
+    search: ['name', 'workstation'],
+    sort: 'name asc',
+    sections: [{ title: 'Operation', fields: [{ field: '__newname', type: 'Data', label: 'Operation name', reqd: true, onlyNew: true, placeholder: 'e.g. Cutting, Mixing, Packing', when: (d) => !d.creation }, 'workstation', 'description'] }],
+    tabs: [{ label: 'All', filters: [] }],
+  },
+  workstations: {
+    doctype: 'Workstation', title: 'Workstations', single: 'Workstation', titleField: 'workstation_name', statusFromDisabled: true,
+    list: ['workstation_name', 'hour_rate', 'production_capacity', 'warehouse', { field: 'disabled', type: 'Active' }],
+    tabs: activeTabs,
+    search: ['name', 'workstation_name'],
+    sections: [{ title: 'Workstation', fields: ['workstation_name', 'production_capacity', { field: 'hour_rate', label: 'Cost per hour' }, 'warehouse', 'description', 'disabled'] }],
+    defaults: () => ({ production_capacity: 1 }),
+  },
+  // Plan several work orders (and the raw material requests behind them) at once, from sales orders or material requests.
+  'production-plans': {
+    doctype: 'Production Plan', title: 'Production Plans', single: 'Production Plan', titleField: 'name',
+    list: ['name', 'posting_date', 'total_planned_qty', 'total_produced_qty', { field: 'status', type: 'Status' }],
+    columns: ['name', 'posting_date', 'company', 'total_planned_qty', 'total_produced_qty', 'status'], // up to 8 shown by default; the rest via “Columns”
+    tabs: [
+      { label: 'All', filters: [] },
+      { label: 'Draft', filters: [['docstatus', '=', 0]] },
+      { label: 'Not Started', filters: [['status', '=', 'Not Started']] },
+      { label: 'In Process', filters: [['status', '=', 'In Process']] },
+      { label: 'Completed', filters: [['status', '=', 'Completed']] },
+    ],
+    search: ['name'],
+    sort: 'creation desc',
+    sections: [
+      { title: 'Plan', fields: ['company', 'posting_date', 'get_items_from', { field: 'customer', when: (d) => d.get_items_from === 'Sales Order' }, 'item_code', 'from_date', 'to_date', 'warehouse'] },
+      { title: 'Options', collapsed: true, fields: ['for_warehouse', 'include_non_stock_items', 'include_subcontracted_items', 'ignore_existing_ordered_qty', 'combine_items'] },
+    ],
+    tables: [
+      { field: 'sales_orders', title: 'Sales orders to plan for', when: (d) => d.get_items_from === 'Sales Order', columns: [{ field: 'sales_order', reqd: true }, { field: 'sales_order_date', readOnly: true }, { field: 'customer', readOnly: true }, { field: 'grand_total', readOnly: true }], newRow: () => ({}), empty: 'Set the filters above, save the plan, then use “Get sales orders” — or add them by hand.' },
+      { field: 'material_requests', title: 'Material requests to plan for', when: (d) => d.get_items_from === 'Material Request', columns: [{ field: 'material_request', reqd: true }, { field: 'material_request_date', readOnly: true }], newRow: () => ({}), empty: 'Save the plan, then use “Get material requests” — or add them by hand.' },
+      {
+        field: 'po_items', title: 'Items to make',
+        columns: [{ field: 'item_code', reqd: true }, { field: 'bom_no', reqd: true, filters: (row) => ({ item: row.item_code, docstatus: 1, is_active: 1 }) }, { field: 'planned_qty', reqd: true }, { field: 'planned_start_date', reqd: true }, 'warehouse', { field: 'ordered_qty', label: 'Ordered', readOnly: true }, { field: 'produced_qty', label: 'Made', readOnly: true }],
+        newRow: () => ({ planned_qty: 1, planned_start_date: new Date().toLocaleString('sv-SE') }), empty: 'Save the plan, then use “Get items to make” — or add an item with its BOM.',
+      },
+      {
+        field: 'mr_items', title: 'Raw materials to request', when: (d) => (d.mr_items?.length ?? 0) > 0,
+        columns: [{ field: 'item_code', readOnly: true }, 'warehouse', { field: 'material_request_type', label: 'Request type' }, { field: 'quantity', label: 'Qty to request' }, { field: 'actual_qty', label: 'In stock', readOnly: true }, 'schedule_date'],
+        addRows: false,
+      },
+    ],
+    docActions: [
+      { label: 'Get sales orders', icon: ListPlus, success: 'Sales orders loaded', when: (doc) => Number(doc.docstatus) === 0 && doc.get_items_from === 'Sales Order', run: planStep('get_open_sales_orders') },
+      { label: 'Get material requests', icon: ListPlus, success: 'Material requests loaded', when: (doc) => Number(doc.docstatus) === 0 && doc.get_items_from === 'Material Request', run: planStep('get_pending_material_requests') },
+      { label: 'Get items to make', icon: ListPlus, success: 'Items loaded', when: (doc) => Number(doc.docstatus) === 0 && Boolean(doc.get_items_from), run: planStep('get_items') },
+      {
+        label: 'Get raw materials', icon: ListPlus, success: 'Raw materials worked out',
+        when: (doc) => Number(doc.docstatus) === 0 && (doc.po_items?.length ?? 0) > 0,
+        run: async ({ doc, call, mutate }) => {
+          const r = await call.post('erpnext.manufacturing.doctype.production_plan.production_plan.get_items_for_material_requests', { doc: JSON.stringify(doc), warehouses: JSON.stringify([]) })
+          const rows = (r?.message ?? []).map((x) => Object.fromEntries(Object.entries(x).filter(([k]) => k !== 'name')))
+          await call.post('frappe.client.save', { doc: JSON.stringify({ ...doc, doctype: 'Production Plan', mr_items: rows }) })
+          await mutate()
+        },
+      },
+      {
+        label: 'Make work orders', icon: PlayCircle, success: 'Work orders created',
+        when: (doc) => Number(doc.docstatus) === 1 && (doc.po_items ?? []).some((i) => (Number(i.planned_qty) || 0) > (Number(i.ordered_qty) || 0)),
+        run: async ({ doc, call, mutate, navigate }) => { await call.post('run_doc_method', { dt: 'Production Plan', dn: doc.name, method: 'make_work_order' }); await mutate(); navigate('/work-orders') },
+      },
+      {
+        label: 'Make material requests', icon: ListPlus, success: 'Material requests created',
+        when: (doc) => Number(doc.docstatus) === 1 && (doc.mr_items?.length ?? 0) > 0,
+        run: async ({ doc, call, mutate, navigate }) => { await call.post('run_doc_method', { dt: 'Production Plan', dn: doc.name, method: 'make_material_request' }); await mutate(); navigate('/material-requests') },
+      },
+    ],
+    defaults: (boot) => ({ company: boot.company, posting_date: today(), get_items_from: 'Sales Order' }),
+  },
+  'subcontracting-boms': {
+    doctype: 'Subcontracting BOM', title: 'Subcontracting BOMs', single: 'Subcontracting BOM', titleField: 'finished_good',
+    list: ['name', 'finished_good', 'finished_good_qty', 'service_item', 'service_item_qty', { field: 'is_active', label: 'Active' }],
+    search: ['name', 'finished_good', 'service_item'],
+    tabs: [{ label: 'All', filters: [] }, { label: 'Active', filters: [['is_active', '=', 1]] }, { label: 'Inactive', filters: [['is_active', '=', 0]] }],
+    sections: [
+      { title: 'Finished good', fields: [{ field: 'finished_good', reqd: true }, { field: 'finished_good_qty', reqd: true }, { field: 'finished_good_bom', reqd: true, filters: (d) => ({ item: d.finished_good, docstatus: 1, is_active: 1 }) }] },
+      { title: 'Service the supplier does', fields: [{ field: 'service_item', reqd: true, filters: { is_stock_item: 0 } }, { field: 'service_item_qty', reqd: true }, { field: 'service_item_uom', reqd: true }, 'is_active'] },
+    ],
+    defaults: () => ({ is_active: 1, finished_good_qty: 1, service_item_qty: 1 }),
+  },
+  'subcontracting-orders': {
+    doctype: 'Subcontracting Order', title: 'Subcontracting Orders', single: 'Subcontracting Order', titleField: 'supplier_name',
+    list: ['name', 'supplier_name', 'purchase_order', 'transaction_date', 'total', { field: 'per_received', label: 'Received' }, { field: 'status', type: 'Status' }],
+    columns: ['name', 'supplier_name', 'purchase_order', 'transaction_date', 'total', 'per_received', 'status'], // up to 8 shown by default; the rest via “Columns”
+    tabs: statusTabs('Draft', 'Open', 'Partially Received', 'Completed', 'Cancelled'),
+    search: ['name', 'supplier_name', 'purchase_order'],
+    sort: 'creation desc',
+    sections: [
+      { title: 'Order', fields: [{ field: 'purchase_order', readOnly: true }, { field: 'supplier', readOnly: true }, 'transaction_date', 'company', { field: 'supplier_warehouse', reqd: true, filters: warehouseFilter }, { field: 'set_warehouse', label: 'Receive finished goods in', filters: warehouseFilter }] },
+    ],
+    tables: [
+      { field: 'items', title: 'Finished goods to receive', columns: [{ field: 'item_code', readOnly: true }, { field: 'qty', readOnly: true }, { field: 'received_qty', label: 'Received', readOnly: true }, { field: 'bom', label: 'BOM' }, 'warehouse'], addRows: false },
+      { field: 'service_items', title: 'Service', columns: [{ field: 'item_code', readOnly: true }, { field: 'qty', readOnly: true }, { field: 'rate', readOnly: true }, { field: 'amount', readOnly: true }, { field: 'fg_item', label: 'Makes', readOnly: true }], addRows: false },
+      { field: 'supplied_items', title: 'Raw materials the supplier needs', when: (d) => (d.supplied_items?.length ?? 0) > 0, columns: [{ field: 'main_item_code', label: 'For', readOnly: true }, { field: 'rm_item_code', label: 'Raw material', readOnly: true }, { field: 'required_qty', readOnly: true }, { field: 'supplied_qty', label: 'Sent', readOnly: true }, { field: 'consumed_qty', label: 'Used', readOnly: true }], addRows: false },
+    ],
+    make: [MAKE.subcontractingSendMaterials, MAKE.subcontractingReceive],
+    defaults: (boot) => ({ company: boot.company, transaction_date: today() }),
+  },
+  'subcontracting-receipts': {
+    doctype: 'Subcontracting Receipt', title: 'Subcontracting Receipts', single: 'Subcontracting Receipt', titleField: 'supplier_name',
+    list: ['name', 'supplier_name', 'posting_date', 'total_qty', 'total', { field: 'status', type: 'Status' }],
+    columns: ['name', 'supplier_name', 'posting_date', 'set_warehouse', 'total_qty', 'total', 'status'], // up to 8 shown by default; the rest via “Columns”
+    tabs: statusTabs('Draft', 'Completed', 'Return', 'Cancelled'),
+    search: ['name', 'supplier_name'],
+    sort: 'creation desc',
+    sections: [
+      { title: 'Receipt', fields: [{ field: 'supplier', readOnly: true }, 'posting_date', 'company', { field: 'set_warehouse', filters: warehouseFilter }, { field: 'supplier_warehouse', filters: warehouseFilter }, 'bill_no', 'bill_date', 'remarks'] },
+    ],
+    tables: [
+      { field: 'items', title: 'Finished goods received', columns: [{ field: 'item_code', readOnly: true }, { field: 'qty', label: 'Received now' }, { field: 'rejected_qty', label: 'Rejected' }, { field: 'rate', readOnly: true }, { field: 'amount', readOnly: true }, 'warehouse'], addRows: false },
+      { field: 'supplied_items', title: 'Raw materials used', when: (d) => (d.supplied_items?.length ?? 0) > 0, columns: [{ field: 'main_item_code', label: 'For', readOnly: true }, { field: 'rm_item_code', label: 'Raw material', readOnly: true }, { field: 'consumed_qty', readOnly: true }], addRows: false },
+    ],
+    defaults: (boot) => ({ company: boot.company, posting_date: today() }),
+  },
   'stock-reconciliations': {
     doctype: 'Stock Reconciliation', title: 'Stock Reconciliations', single: 'Stock Reconciliation', titleField: 'name',
-    list: ['name', 'purpose', 'posting_date', 'set_warehouse', { field: 'docstatus', type: 'DocStatus', label: 'Status' }],
-    columns: ['name', 'purpose', 'posting_date', 'set_warehouse', 'difference_amount', 'docstatus'], // up to 8 shown by default; the rest via “Columns”
+    list: ['name', 'purpose', 'posting_date', 'set_warehouse', 'cost_center', { field: 'docstatus', type: 'DocStatus', label: 'Status' }],
+    columns: ['name', 'purpose', 'posting_date', 'set_warehouse', 'cost_center', 'difference_amount', 'docstatus'], // up to 8 shown by default; the rest via “Columns”
     tabs: docstatusTabs,
     search: ['name'],
     sort: 'posting_date desc',
     sections: [
-      { title: 'Count', fields: ['purpose', 'company', 'posting_date', 'posting_time', 'set_posting_time', 'set_warehouse', 'expense_account', 'cost_center', { field: 'difference_amount', readOnly: true }] },
+      { title: 'Count', fields: ['purpose', 'company', 'posting_date', 'posting_time', 'set_posting_time', 'set_warehouse', 'expense_account', { field: 'cost_center', reqd: true, filters: (d) => ({ is_group: 0, ...(d.company ? { company: d.company } : {}) }) }, { field: 'difference_amount', readOnly: true }] },
     ],
     tables: [
       {
@@ -178,13 +458,26 @@ export const DOCTYPES = {
       },
     ],
     // Opening stock must post against a balance-sheet account (ERPNext's "Temporary Opening").
+    // The cost center is always filled: the company's own, whenever the company changes.
     onChange: async (field, value, doc, { call }) => {
-      if (!['purpose', 'company'].includes(field) || !doc.company) return null
-      if (doc.purpose !== 'Opening Stock') return field === 'purpose' ? { expense_account: null } : null
-      const res = await call.get('frappe.client.get_value', { doctype: 'Account', filters: JSON.stringify({ company: doc.company, account_type: 'Temporary', is_group: 0 }), fieldname: 'name' })
-      return res?.message?.name ? { expense_account: res.message.name } : null
+      if (!['purpose', 'company'].includes(field)) return null
+      const company = field === 'company' ? value : doc.company
+      if (!company) return null
+      const patch = {}
+      if (field === 'company') {
+        const cc = await call.get('frappe.client.get_value', { doctype: 'Company', filters: company, fieldname: 'cost_center' })
+        patch.cost_center = cc?.message?.cost_center || null
+      }
+      const purpose = field === 'purpose' ? value : doc.purpose
+      if (purpose !== 'Opening Stock') {
+        if (field === 'purpose') patch.expense_account = null
+        return Object.keys(patch).length ? patch : null
+      }
+      const res = await call.get('frappe.client.get_value', { doctype: 'Account', filters: JSON.stringify({ company, account_type: 'Temporary', is_group: 0 }), fieldname: 'name' })
+      if (res?.message?.name) patch.expense_account = res.message.name
+      return Object.keys(patch).length ? patch : null
     },
-    defaults: (boot) => ({ purpose: 'Stock Reconciliation', company: boot.company, posting_date: today(), set_warehouse: boot.default_warehouse }),
+    defaults: (boot) => ({ purpose: 'Stock Reconciliation', company: boot.company, posting_date: today(), set_warehouse: boot.default_warehouse, cost_center: boot.cost_center }),
   },
   'landed-costs': {
     doctype: 'Landed Cost Voucher', title: 'Landed Costs', single: 'Landed Cost Voucher', titleField: 'name',
@@ -1254,7 +1547,7 @@ export const DOCTYPES = {
     search: ['name', 'employee_name', 'employee', 'purpose'],
     sort: 'posting_date desc',
     sections: [
-      { title: 'Advance', fields: [{ field: 'employee', filters: { status: 'Active' } }, { field: 'employee_name', readOnly: true }, 'purpose', 'advance_amount', 'posting_date', 'required_by', 'company', 'currency', 'exchange_rate'] },
+      { title: 'Advance', fields: [{ field: 'employee', filters: { status: 'Active' } }, { field: 'employee_name', readOnly: true }, 'purpose', 'advance_amount', 'posting_date', 'company', 'currency'] },
       { title: 'Accounting', fields: ['advance_account', 'mode_of_payment', 'repay_unclaimed_amount_from_salary', { field: 'paid_amount', readOnly: true }, { field: 'claimed_amount', readOnly: true }, { field: 'return_amount', readOnly: true }] },
     ],
     make: [
@@ -1376,9 +1669,9 @@ export const DOCTYPES = {
   },
   'feedback-criteria': {
     doctype: 'Employee Feedback Criteria', title: 'Rating Criteria', single: 'Rating Criterion', titleField: 'criteria',
-    list: ['criteria', 'description'],
+    list: ['criteria'],
     search: ['name', 'criteria'],
-    sections: [{ title: 'Criterion', fields: ['criteria', 'description'] }],
+    sections: [{ title: 'Criterion', fields: ['criteria'] }],
   },
   goals: {
     doctype: 'Goal', title: 'Goals', single: 'Goal', titleField: 'goal_name',
@@ -1504,10 +1797,10 @@ export const DOCTYPES = {
   },
   'finance-books': {
     doctype: 'Finance Book', title: 'Finance Books', single: 'Finance Book', titleField: 'finance_book_name', noStatus: true,
-    list: ['finance_book_name', 'for_depreciation'],
+    list: ['finance_book_name'],
     search: ['name', 'finance_book_name'],
     sort: 'finance_book_name asc',
-    sections: [{ title: 'Finance book', fields: ['finance_book_name', 'for_depreciation'] }],
+    sections: [{ title: 'Finance book', fields: ['finance_book_name'] }],
   },
   'chart-of-accounts': {
     doctype: 'Account', title: 'Chart of Accounts', single: 'Account', titleField: 'account_name', statusFromDisabled: true,
@@ -1643,6 +1936,16 @@ function round2(n) { return Math.round(n * 100) / 100 }
 function accountFilter(d) { return { is_group: 0, ...(d.company ? { company: d.company } : {}) } }
 
 /** Prepend fixed filters (e.g. is_return = 1) to every tab. */
+/** A Production Plan button that runs one of its server methods (which fill tables in memory), then saves the result. */
+function planStep(method) {
+  return async ({ doc, call, mutate }) => {
+    const r = await call.post('run_doc_method', { dt: 'Production Plan', dn: doc.name, method })
+    const d = r?.docs?.[0]
+    if (d) await call.post('frappe.client.save', { doc: JSON.stringify(d) })
+    await mutate()
+  }
+}
+
 function withBase(base, tabs) {
   return tabs.map((t) => ({ ...t, filters: [...base, ...t.filters] }))
 }
@@ -1769,8 +2072,8 @@ DOCTYPES.assets = {
   sort: 'purchase_date desc',
   sections: [
     { title: 'Asset', fields: [{ field: 'item_code', reqd: true, filters: () => ({ is_fixed_asset: 1, is_stock_item: 0, disabled: 0 }) }, 'asset_name', 'asset_category', 'company', 'location', 'custodian', 'department', 'cost_center'] },
-    { title: 'Purchase', fields: ['purchase_date', 'available_for_use_date', 'net_purchase_amount', 'purchase_invoice', 'supplier', 'is_existing_asset'] },
-    { title: 'Depreciation', fields: ['calculate_depreciation', { field: 'opening_accumulated_depreciation', when: (d) => Number(d.is_existing_asset) }, { field: 'opening_number_of_booked_depreciations', when: (d) => Number(d.is_existing_asset) }, 'value_after_depreciation'] },
+    { title: 'Purchase', fields: ['purchase_date', 'available_for_use_date', 'net_purchase_amount', 'purchase_invoice', 'supplier'] },
+    { title: 'Depreciation', fields: ['calculate_depreciation', { field: 'opening_accumulated_depreciation', when: (d) => Number(d.calculate_depreciation) }, { field: 'opening_number_of_booked_depreciations', when: (d) => Number(d.calculate_depreciation) }, 'value_after_depreciation'] },
   ],
   tables: [
     { field: 'finance_books', title: 'Depreciation schedule setup', when: (d) => Number(d.calculate_depreciation), columns: ['finance_book', { field: 'depreciation_method', reqd: true }, { field: 'total_number_of_depreciations', reqd: true }, { field: 'frequency_of_depreciation', reqd: true }, 'depreciation_start_date', 'expected_value_after_useful_life'], newRow: () => ({ depreciation_method: 'Straight Line', frequency_of_depreciation: 12 }) },
@@ -1914,6 +2217,18 @@ DOCTYPES.skills = {
 }
 
 /* ---------------- Restaurant ---------------- */
+// The purchase order for the service a supplier does: its items are the service, each pointing at the finished good the supplier makes.
+DOCTYPES['subcontract-purchase-orders'] = {
+  ...DOCTYPES['purchase-orders'], alias: true, title: 'Subcontract POs', single: 'Subcontract PO',
+  tabs: withBase([['is_subcontracted', '=', 1]], DOCTYPES['purchase-orders'].tabs),
+  sections: [
+    { title: 'Details', fields: [{ field: 'supplier', filters: { disabled: 0 } }, 'transaction_date', 'schedule_date', 'company', { field: 'supplier_warehouse', label: 'Supplier warehouse (materials go here)', reqd: true, filters: warehouseFilter }, { field: 'set_warehouse', label: 'Receive finished goods in', filters: warehouseFilter }] },
+    { title: 'Pricing', fields: ['currency', 'buying_price_list', 'taxes_and_charges'] },
+  ],
+  items: { columns: ['item_code', 'qty', 'uom', 'rate', 'amount', { field: 'fg_item', label: 'Makes', reqd: true }, { field: 'fg_item_qty', label: 'Makes qty', reqd: true }], dateField: 'schedule_date' },
+  make: [MAKE.orderToSubcontracting, MAKE.orderToBill, MAKE.advance('Purchase Order')],
+  defaults: (boot) => ({ ...DOCTYPES['purchase-orders'].defaults(boot), is_subcontracted: 1 }),
+}
 /* ---------------- Point of sale ---------------- */
 DOCTYPES['pos-profiles'] = {
   doctype: 'POS Profile', title: 'POS Counters', single: 'POS Counter', titleField: 'name', statusFromDisabled: true,
@@ -1937,7 +2252,7 @@ DOCTYPES['pos-profiles'] = {
   ],
   tables: [
     { field: 'payments', title: 'Payment methods', columns: [{ field: 'mode_of_payment', reqd: true }, 'default', 'allow_in_returns'], newRow: () => ({}) },
-    { field: 'applicable_for_users', title: 'Cashiers (empty = everyone)', columns: [{ field: 'user', reqd: true }, 'default'], newRow: () => ({}) },
+    { field: 'applicable_for_users', title: 'Cashiers who may use this counter (empty = managers only)', columns: [{ field: 'user', reqd: true }, 'default'], newRow: () => ({}) },
     { field: 'item_groups', title: 'Only these item groups (empty = all)', columns: [{ field: 'item_group', reqd: true }], newRow: () => ({}) },
   ],
   defaults: (boot) => ({ company: boot.company, currency: boot.currency, update_stock: 1, allow_discount_change: 1 }),

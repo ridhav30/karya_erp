@@ -23,7 +23,7 @@ IGNORE = {
 	"Workflow Action", "Workflow Action Permitted Role", "Series", "Session Default Settings", "User Settings", "Desktop Icon",
 	"Event Sync Log", "Submission Queue", "Document Share Key", "OAuth Bearer Token", "OAuth Authorization Code", "Token Cache",
 	"Bulk Update", "Data Import", "Data Import Log", "Reminder", "Tag Link", "Tag", "Energy Point Log", "Changelog Feed", "Note Seen By",
-	"Karya Erp Chat Room", "Karya Erp Chat Message",  # private conversations are not an audit trail
+	"Karya Erp Chat Room", "Karya Erp Chat Message", "Karya Erp Wishlist Entry",  # private conversations and stars are not an audit trail
 }
 SKIP_FIELDS = {"modified", "modified_by", "creation", "owner", "idx", "lft", "rgt", "_user_tags", "_comments", "_assign", "_liked_by", "docstatus", "workflow_state"}
 ACTION = {"save": "Update", "submit": "Submit", "cancel": "Cancel", "update_after_submit": "Update"}

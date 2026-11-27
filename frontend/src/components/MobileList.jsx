@@ -1,4 +1,4 @@
-import { Calendar, Eye, FileText, Pencil, Trash2, UserCheck } from 'lucide-react'
+import { Calendar, Eye, FileText, Pencil, Heart, Trash2, UserCheck } from 'lucide-react'
 import StatusBadge from './StatusBadge.jsx'
 import FieldValue from './fields/FieldValue.jsx'
 import { Spinner } from './Spinner.jsx'
@@ -14,7 +14,7 @@ const AMOUNT_TYPES = new Set(['Currency'])
  *   Amount box: up to two money columns    Footer: View / Edit / Delete
  * Card content is derived from the list columns, so every doctype gets it without extra config.
  */
-export default function MobileList({ config, columns, rows, loading, currency, empty, onView, onEdit, onDelete, deleting }) {
+export default function MobileList({ config, columns, rows, loading, currency, empty, onView, onEdit, onDelete, deleting, wish }) {
   // Masters (e.g. Customer) have no "name" column: their first column is the headline.
   const headline = columns.some((c) => c.fieldname === 'name') ? null : columns[0]
   const titleCol = columns.find((c) => c.fieldname === config.titleField && c.fieldname !== 'name' && c.fieldname !== headline?.fieldname)
@@ -64,7 +64,14 @@ export default function MobileList({ config, columns, rows, loading, currency, e
               >
                 {headText || row.name}
               </button>
-              {status && <StatusBadge status={status} className="shrink-0" />}
+              <span className="flex shrink-0 items-center gap-1.5">
+                {status && <StatusBadge status={status} />}
+                {wish && (
+                  <button type="button" onClick={() => wish.toggle(row.name)} aria-pressed={wish.has(row.name)} title={wish.has(row.name) ? 'Remove from wishlist' : 'Add to wishlist'} className="grid size-6 place-items-center rounded text-muted">
+                    <Heart className={`size-4 ${wish.has(row.name) ? 'fill-wishlist text-wishlist' : ''}`} />
+                  </button>
+                )}
+              </span>
             </div>
 
             {/* Row 2: party + date */}
