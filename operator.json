@@ -8,10 +8,20 @@
     "/accounts",
     "/audit-log",
     "/batches",
+    "/branches",
     "/credit-notes",
     "/customers",
+    "/departments",
+    "/designations",
+    "/employee-documents",
     "/employee-programs",
+    "/employees",
+    "/final-settlement",
     "/financial-reports",
+    "/holiday-list-assignments",
+    "/holiday-lists",
+    "/holidays",
+    "/hr-dashboard",
     "/import",
     "/item-prices",
     "/items",
@@ -31,6 +41,7 @@
     "/receivable",
     "/receivable-history",
     "/receive",
+    "/salary-history",
     "/sales-invoices",
     "/stock-balance",
     "/stock-entries",
@@ -103,6 +114,22 @@
         "Credit Notes",
         "Financial Reports",
         "VAT Return"
+      ]
+    },
+    {
+      "feature": "HR",
+      "entries": [
+        "HR Dashboard",
+        "Employees",
+        "Employee Documents",
+        "Salary History",
+        "Departments",
+        "Designations",
+        "Branches",
+        "Holidays",
+        "Holiday Lists",
+        "Holiday Assignments",
+        "Final Settlement"
       ]
     },
     {
@@ -328,6 +355,25 @@
         "label": "Programs",
         "items": [
           "/employee-programs"
+        ]
+      },
+      {
+        "type": "group",
+        "id": "g:HR",
+        "group": "HR",
+        "label": "HR",
+        "items": [
+          "/hr-dashboard",
+          "/employees",
+          "/employee-documents",
+          "/salary-history",
+          "/departments",
+          "/designations",
+          "/branches",
+          "/holidays",
+          "/holiday-lists",
+          "/holiday-list-assignments",
+          "/final-settlement"
         ]
       }
     ],

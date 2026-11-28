@@ -284,10 +284,20 @@ const ENABLED = new Set([
     "/accounts",
     "/audit-log",
     "/batches",
+    "/branches",
     "/credit-notes",
     "/customers",
+    "/departments",
+    "/designations",
+    "/employee-documents",
     "/employee-programs",
+    "/employees",
+    "/final-settlement",
     "/financial-reports",
+    "/holiday-list-assignments",
+    "/holiday-lists",
+    "/holidays",
+    "/hr-dashboard",
     "/import",
     "/item-prices",
     "/items",
@@ -307,6 +317,7 @@ const ENABLED = new Set([
     "/receivable",
     "/receivable-history",
     "/receive",
+    "/salary-history",
     "/sales-invoices",
     "/stock-balance",
     "/stock-entries",
@@ -403,6 +414,23 @@ const MENU = [
       "label": "Programs",
       "items": [
         "/employee-programs"
+      ]
+    },
+    {
+      "group": "HR",
+      "label": "HR",
+      "items": [
+        "/hr-dashboard",
+        "/employees",
+        "/employee-documents",
+        "/salary-history",
+        "/departments",
+        "/designations",
+        "/branches",
+        "/holidays",
+        "/holiday-lists",
+        "/holiday-list-assignments",
+        "/final-settlement"
       ]
     }
   ]

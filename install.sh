@@ -28,8 +28,8 @@ echo "2/5 sites/apps.txt"
 [ -z "$(tail -c1 sites/apps.txt)" ] || echo >> sites/apps.txt
 grep -qx "$APP" sites/apps.txt || echo "$APP" >> sites/apps.txt
 
-echo "3/5 Apps this one needs on $SITE: erpnext"
-for NEED in erpnext; do
+echo "3/5 Apps this one needs on $SITE: erpnext hrms"
+for NEED in erpnext hrms; do
   INSTALLED="$(bench --site "$SITE" list-apps 2>/dev/null)"
   echo "$INSTALLED" | grep -qw "$NEED" && continue
   if [ -d "apps/$NEED" ]; then

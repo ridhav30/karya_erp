@@ -9,6 +9,9 @@ import Placeholder from '../pages/Placeholder.jsx'
 import NotFound from '../pages/NotFound.jsx'
 // Hand-built pages load when first opened, so the first screen does not download the whole app.
 const MyHR = lazy(() => import('../pages/hr/MyHR.jsx'))
+const HRDashboard = lazy(() => import('../pages/hr/HRDashboard.jsx'))
+const FinalSettlement = lazy(() => import('../pages/hr/FinalSettlement.jsx'))
+const Settings = lazy(() => import('../pages/Settings.jsx'))
 const Import = lazy(() => import('../pages/Import.jsx'))
 const AuditLog = lazy(() => import('../pages/AuditLog.jsx'))
 const Users = lazy(() => import('../pages/Users.jsx'))
@@ -43,6 +46,9 @@ const doctypeRoutes = Object.entries(DOCTYPES).flatMap(([slug, config]) => {
 const customRoutes = [
   { path: 'my-hr', element: <MyHR /> },
   { path: 'employee', element: <MyHR /> }, // the address employees sign in at (see the login page); once signed in it is their My HR
+  { path: 'hr-dashboard', element: <HRDashboard /> },
+  { path: 'final-settlement', element: <FinalSettlement /> },
+  { path: 'holidays', element: <Settings only="holidays" /> },
   { path: 'import', element: <Import /> },
   { path: 'audit-log', element: <AuditLog /> },
   { path: 'users', element: <Users /> },
