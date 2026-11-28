@@ -6,9 +6,9 @@ import Button from '../Button.jsx'
 import PageBar from '../PageBar.jsx'
 import StatusBadge from '../StatusBadge.jsx'
 import { SIDES } from '../../lib/partySides.js'
-import { ROUTE_OF } from '../../lib/doctypes.js'
 import { errorText } from '../../lib/errors.js'
 import { formatDate, formatMoney } from '../../lib/format.js'
+import { docRoute } from '../../lib/docRoute.js'
 import { useBoot } from '../../app/boot-context.js'
 
 const Stat = ({ label, value, tone, sub }) => (
@@ -33,7 +33,7 @@ export default function PartyAccount({ doctype, name }) {
   const cur = s?.currency || boot.currency
   const enc = encodeURIComponent(name)
   const receive = side === 'receive'
-  const invRoute = (n) => (ROUTE_OF[S.partyType === 'Customer' ? 'Sales Invoice' : 'Purchase Invoice'] ? `${ROUTE_OF[S.partyType === 'Customer' ? 'Sales Invoice' : 'Purchase Invoice']}/${encodeURIComponent(n)}` : null)
+  const invRoute = (n) => docRoute(boot, S.partyType === 'Customer' ? 'Sales Invoice' : 'Purchase Invoice', n)
 
   if (sum.error) return <div className="card p-4 text-xs text-danger">{errorText(sum.error)}</div>
 

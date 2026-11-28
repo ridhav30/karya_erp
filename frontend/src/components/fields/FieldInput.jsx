@@ -13,7 +13,7 @@ export default function FieldInput({ field, value, onChange, doc, invalid, class
   const filters = typeof field.filters === 'function' ? field.filters(doc) : field.filters
 
   if (t === 'Link') {
-    return <LinkField doctype={field.options} value={value} onChange={onChange} filters={filters} invalid={invalid} className={className} placeholder={field.placeholder} />
+    return <LinkField doctype={field.options} value={value} onChange={onChange} filters={filters} invalid={invalid} className={className} placeholder={field.placeholder} show={field.show} />
   }
   if (t === 'Dynamic Link') {
     const target = doc?.[field.options]

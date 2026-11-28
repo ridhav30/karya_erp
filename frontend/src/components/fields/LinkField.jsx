@@ -3,7 +3,7 @@ import { useQuickCreate } from '../../app/quick-create-context.js'
 import { canQuickCreate } from '../../lib/quickCreate.js'
 import { useCall } from '../../lib/useCall.js'
 import Combobox from './Combobox.jsx'
-import { MAX, PAGE, TTL, cache, invalidateLinkCache, keyOf, labels, searchLink } from '../../lib/linkCache.js'
+import { MAX, PAGE, TTL, cache, invalidateLinkCache, keyOf, labelKey, labels, searchLink } from '../../lib/linkCache.js'
 
 /**
  * Link field picker: the e-invoicing CustomSelect behaviour (see Combobox) on top of
@@ -13,28 +13,35 @@ import { MAX, PAGE, TTL, cache, invalidateLinkCache, keyOf, labels, searchLink }
  * prefetched when the pointer reaches the field, and while a new search is in flight the list is
  * filtered locally from the last results so typing never waits on the network.
  */
-export default function LinkField({ doctype, value, onChange, filters, placeholder, disabled, invalid, className, autoFocus, bare, clearable = true }) {
+export default function LinkField({ doctype, value, onChange, filters, placeholder, disabled, invalid, className, autoFocus, bare, clearable = true, show = '' }) {
   const call = useCall()
   const quick = useQuickCreate()
   const fieldId = useId()
   const filtersKey = JSON.stringify(filters ?? {})
   const [open, setOpen] = useState(false)
   const [txt, setTxt] = useState('')
-  const [results, setResults] = useState(() => cache.get(keyOf(doctype ?? '', filtersKey, ''))?.results ?? [])
+  const [results, setResults] = useState(() => cache.get(keyOf(doctype ?? '', filtersKey, '', show))?.results ?? [])
   const [loading, setLoading] = useState(false)
   const [size, setSize] = useState(PAGE) // how many results are asked for; grows with "Load more" / scrolling
-  const [hasMore, setHasMore] = useState(() => cache.get(keyOf(doctype ?? '', filtersKey, ''))?.hasMore ?? false)
+  const [hasMore, setHasMore] = useState(() => cache.get(keyOf(doctype ?? '', filtersKey, '', show))?.hasMore ?? false)
   const reqRef = useRef(0)
+  const [, setLabelled] = useState(0)
+
+  // A saved value shows the chosen field (e.g. the customer's name), not its ID: look it up once.
+  useEffect(() => {
+    if (!show || !value || !doctype || labels.has(labelKey(doctype, value, show))) return
+    searchLink(call, doctype, filtersKey, value, PAGE, show).then(() => setLabelled((n) => n + 1)).catch(() => {})
+  }, [show, value, doctype, filtersKey, call])
 
   // Fetch while open: empty text immediately, typed text debounced a little.
   useEffect(() => {
     if (!open || !doctype) return
     const id = ++reqRef.current
-    const key = keyOf(doctype, filtersKey, txt)
+    const key = keyOf(doctype, filtersKey, txt, show)
     const hit = cache.get(key)
     const run = () => {
       setLoading(true)
-      searchLink(call, doctype, filtersKey, txt, size)
+      searchLink(call, doctype, filtersKey, txt, size, show)
         .then((r) => { if (id === reqRef.current) { setResults(r.results); setHasMore(r.hasMore) } })
         .catch(() => { if (id === reqRef.current) { setResults([]); setHasMore(false) } })
         .finally(() => { if (id === reqRef.current) setLoading(false) })
@@ -45,7 +52,7 @@ export default function LinkField({ doctype, value, onChange, filters, placehold
     }
     const t = setTimeout(run, txt && size === PAGE ? 150 : 0)
     return () => clearTimeout(t)
-  }, [open, txt, doctype, filtersKey, call, size])
+  }, [open, txt, doctype, filtersKey, call, size, show])
 
   // While the server catches up, narrow the last results locally so typing feels instant.
   const q = txt.trim().toLowerCase()
@@ -54,7 +61,7 @@ export default function LinkField({ doctype, value, onChange, filters, placehold
     : results
 
   const prefetch = () => {
-    if (doctype && !disabled) searchLink(call, doctype, filtersKey, '').catch(() => {})
+    if (doctype && !disabled) searchLink(call, doctype, filtersKey, '', PAGE, show).catch(() => {})
   }
 
   const allowCreate = Boolean(quick) && canQuickCreate(doctype)
@@ -71,7 +78,7 @@ export default function LinkField({ doctype, value, onChange, filters, placehold
     })
   }
 
-  const current = value ? (labels.get(`${doctype}|${value}`) ?? { value, label: value }) : null
+  const current = value ? (labels.get(labelKey(doctype, value, show)) ?? { value, label: value }) : null
   // Keep the selected value in the list so it shows as selected (and toggles off when picked again).
   const options = current && !shown.some((o) => o.value === value) && !q ? [current, ...shown] : shown
 

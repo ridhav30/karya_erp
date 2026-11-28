@@ -6,7 +6,8 @@ import Button from '../../components/Button.jsx'
 import PageBar from '../../components/PageBar.jsx'
 import StatusBadge from '../../components/StatusBadge.jsx'
 import { CloseShift } from './PointOfSale.jsx'
-import { ROUTE_OF } from '../../lib/doctypes.js'
+import { docRoute } from '../../lib/docRoute.js'
+import { useBoot } from '../../app/boot-context.js'
 import { errorText } from '../../lib/errors.js'
 import { formatDate, formatMoney } from '../../lib/format.js'
 import { cn } from '../../lib/utils.js'
@@ -18,6 +19,7 @@ const Stat = ({ label, value, sub, tone }) => (
 
 /** One session: who ran which counter, when, the takings by payment method, and every invoice it made (paged, date-filtered). */
 export default function PosSession() {
+  const boot = useBoot()
   const { name } = useParams()
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
@@ -33,7 +35,7 @@ export default function PosSession() {
   const cur = d?.currency || 'AED'
   const money = (v) => formatMoney(v ?? 0, cur)
   const reset = (fn) => (v) => { fn(v); setStart(0) }
-  const invRoute = (n) => (ROUTE_OF[d?.invoice_type] ? `${ROUTE_OF[d.invoice_type]}/${encodeURIComponent(n)}` : null)
+  const invRoute = (n) => docRoute(boot, d?.invoice_type, n)
 
   if (error) return <div className="space-y-3"><Link to="/pos" className="text-xs text-primary hover:underline">← Sessions</Link><div className="card p-4 text-xs text-danger">{errorText(error)}</div></div>
   if (isLoading && !d) return <div className="card h-64 animate-pulse" />

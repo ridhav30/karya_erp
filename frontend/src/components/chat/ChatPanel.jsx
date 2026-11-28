@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useFrappeGetCall } from 'frappe-react-sdk'
 import { useNavigate } from 'react-router'
-import { ROUTE_OF } from '../../lib/doctypes.js'
+import { docRoute } from '../../lib/docRoute.js'
+import { useBoot } from '../../app/boot-context.js'
 import { ArrowLeft, Camera, CornerUpLeft, Check, CheckCheck, ImagePlus, Download, FileText, Loader2, MessageSquarePlus, Paperclip, Plus, Search, SendHorizontal, Users, X } from 'lucide-react'
 import Button from '../Button.jsx'
 import Modal from '../Modal.jsx'
@@ -348,6 +349,7 @@ function NewGroup({ onBack, onOpen }) {
 
 function Conversation({ room, focus, onBack, onClose, onUnread }) {
   const call = useCall()
+  const boot = useBoot()
   const toast = useToast()
   const latest = useFrappeGetCall('karya_erp.chat.messages', { room: room.name, limit: 30 }, `chat-msgs:${room.name}`, { refreshInterval: 3000, revalidateOnFocus: true })
   const [older, setOlder] = useState([])
@@ -425,9 +427,9 @@ function Conversation({ room, focus, onBack, onClose, onUnread }) {
     } catch (e) { setPreview(null); toast({ tone: 'error', title: `Could not upload ${f.name || 'the file'}`, description: errorText(e) }) } finally { setUploading(false) }
   }
   function openDoc(doc) {
-    const base = ROUTE_OF[doc.doctype]
-    if (!base) { toast({ tone: 'info', title: `${doc.doctype} ${doc.name}`, description: 'This document type has no page in the app.' }); return }
-    navigate(`${base}/${encodeURIComponent(doc.name)}`)
+    const to = docRoute(boot, doc.doctype, doc.name)
+    if (!to) { toast({ tone: 'info', title: `${doc.doctype} ${doc.name}`, description: 'You cannot open this document here.' }); return }
+    navigate(to)
     onClose()
   }
   useEscLayer(() => {

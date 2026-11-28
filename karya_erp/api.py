@@ -30,6 +30,7 @@ NAV_DOCTYPES = [
 	"Item Tax Template",
 	"Activity Type", "Asset", "Asset Category", "Asset Movement", "Bank Transaction", "Interview", "Interview Type", "Job Applicant", "Job Applicant Source", "Job Offer", "Job Opening", "Location", "POS Closing Entry", "POS Profile", "Project", "Project Type", "Request for Quotation", "Skill", "Supplier Quotation", "Task", "Timesheet",
 ]
+NAV_DOCTYPES += ["Employee programs"]
 
 # Any of these readable → the user works in the ERP, not only in My HR.
 BUSINESS_DOCTYPES = ["Customer", "Supplier", "Item", "Sales Invoice", "Purchase Invoice", "Account", "Stock Entry"]
@@ -335,12 +336,22 @@ def search(text, limit=5):
 
 
 @frappe.whitelist()
-def link_search(doctype, txt="", filters=None, start=0, page_length=20):
+def link_search(doctype, txt="", filters=None, start=0, page_length=20, show=None):
 	"""One page of Frappe's link search (the same results and permissions as Desk's link fields), plus whether
-	more follow, so a long list of accounts, parties or items can be scrolled through instead of cut at 20."""
+	more follow, so a long list of accounts, parties or items can be scrolled through instead of cut at 20.
+	`show` names a field of the doctype to show as each option's label (and to search in), e.g. customer_name."""
 	from frappe.desk.search import build_for_autosuggest, search_widget
 
 	page_length = min(max(cint(page_length), 1), 300)
+	df = frappe.get_meta(doctype).get_field(show) if show and show != "name" else None
+	if df and df.fieldtype in ("Data", "Link", "Select", "Small Text", "Int", "Float", "Currency", "Date", "Phone"):
+		flt = frappe.parse_json(filters) if isinstance(filters, str) else (filters or {})
+		t = (txt or "").strip()
+		or_filters = [["name", "like", f"%{t}%"], [show, "like", f"%{t}%"]] if t else None
+		rows = frappe.get_list(doctype, filters=flt, or_filters=or_filters, fields=["name", show], order_by=f"`tab{doctype}`.`{show}` asc",
+			limit_start=max(cint(start), 0), limit_page_length=page_length + 1)
+		results = [{"value": r.name, "label": str(r.get(show) or r.name), "description": ""} for r in rows[:page_length]]
+		return {"results": results, "has_more": len(rows) > page_length}
 	rows = search_widget(doctype, (txt or "").strip(), None, start=max(cint(start), 0), page_length=page_length + 1, filters=filters)
 	return {"results": build_for_autosuggest(rows[:page_length], doctype=doctype), "has_more": len(rows) > page_length}
 

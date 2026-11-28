@@ -4,12 +4,14 @@ import { useFrappeGetCall } from 'frappe-react-sdk'
 import { Bell, CheckCheck, CheckSquare, ChevronRight } from 'lucide-react'
 import { useCall } from '../lib/useCall.js'
 import { useDashboard } from '../lib/useDashboard.js'
-import { ROUTE_OF } from '../lib/doctypes.js'
+import { docRoute } from '../lib/docRoute.js'
+import { useBoot } from '../app/boot-context.js'
 import { ago, plainText } from '../lib/activity.js'
 import { cn } from '../lib/utils.js'
 
 /** Bell: Frappe notification log (assignments, mentions, alerts, shares) + pending approvals. */
 export default function NotificationsMenu() {
+  const boot = useBoot()
   const call = useCall()
   const navigate = useNavigate()
   const ref = useRef(null)
@@ -39,8 +41,8 @@ export default function NotificationsMenu() {
       try { await call.post('frappe.desk.doctype.notification_log.notification_log.mark_as_read', { docname: n.name }) } catch { /* ignore */ }
       mutate()
     }
-    const route = ROUTE_OF[n.document_type]
-    if (route && n.document_name) navigate(`${route}/${encodeURIComponent(n.document_name)}`)
+    const route = n.document_name ? docRoute(boot, n.document_type, n.document_name) : null // nothing happens when the document is not one this person can open
+    if (route) navigate(route)
   }
   async function readAll() {
     try { await call.post('frappe.desk.doctype.notification_log.notification_log.mark_all_as_read') } catch { /* ignore */ }

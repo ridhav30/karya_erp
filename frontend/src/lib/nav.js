@@ -270,6 +270,9 @@ const ALL_NAV = [
   { label: 'Audit log', to: '/audit-log', icon: History, roles: ['System Manager', 'Auditor'] },
   { label: 'Users & Access', to: '/users', icon: UserCog, roles: ['System Manager'] },
   { label: 'Settings', to: '/settings', icon: Settings2, roles: ['System Manager', 'Accounts Manager', 'HR Manager'] },
+  { label: 'Custom', icon: FileText, items: [
+      { label: "Employee programs", to: "/employee-programs", icon: FileText, doctype: "Employee programs" },
+    ] },
 ]
 
 // ---- Menu arranged in the Operator ------------------------------------------------------
@@ -283,6 +286,7 @@ const ENABLED = new Set([
     "/batches",
     "/credit-notes",
     "/customers",
+    "/employee-programs",
     "/financial-reports",
     "/import",
     "/item-prices",
@@ -319,7 +323,7 @@ const MENU = [
     },
     {
       "group": "Selling",
-      "label": "Selling",
+      "label": "Sales",
       "items": [
         "/pos",
         "/customers",
@@ -328,7 +332,7 @@ const MENU = [
     },
     {
       "group": "Buying",
-      "label": "Buying",
+      "label": "Purchase",
       "items": [
         "/suppliers",
         "/purchase-orders",
@@ -338,7 +342,7 @@ const MENU = [
     },
     {
       "group": "Stock",
-      "label": "Stock",
+      "label": "Inventory",
       "items": [
         "/items",
         "/warehouses",
@@ -393,6 +397,13 @@ const MENU = [
     },
     {
       "to": "/my-hr"
+    },
+    {
+      "group": "Custom",
+      "label": "Programs",
+      "items": [
+        "/employee-programs"
+      ]
     }
   ]
 

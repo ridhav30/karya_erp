@@ -9,7 +9,7 @@
 # Already installed? The same steps update it: the script runs migrate instead of install-app.
 #
 # The bench folder is found from this script's location (apps/karya_erp/install.sh → ../..).
-# ERPNext (and HRMS, for HR features) must already be installed on the site.
+# ERPNext (and HRMS, for HR features) must be on the bench; this script installs them on the site if missing.
 set -euo pipefail
 APP=karya_erp
 SITE="${1:?usage: bash $APP/install.sh <site>}"
@@ -28,9 +28,17 @@ echo "2/5 sites/apps.txt"
 [ -z "$(tail -c1 sites/apps.txt)" ] || echo >> sites/apps.txt
 grep -qx "$APP" sites/apps.txt || echo "$APP" >> sites/apps.txt
 
-echo "3/5 Check ERPNext on $SITE"
+echo "3/5 Apps this one needs on $SITE: erpnext"
+for NEED in erpnext; do
+  INSTALLED="$(bench --site "$SITE" list-apps 2>/dev/null)"
+  echo "$INSTALLED" | grep -qw "$NEED" && continue
+  if [ -d "apps/$NEED" ]; then
+    echo "  installing $NEED"; bench --site "$SITE" install-app "$NEED"
+  else
+    echo "$NEED is not on this bench. Get it first:  bench get-app $NEED"; exit 1
+  fi
+done
 INSTALLED="$(bench --site "$SITE" list-apps 2>/dev/null)"
-echo "$INSTALLED" | grep -qw erpnext || { echo "Install erpnext on $SITE first:  bench --site $SITE install-app erpnext"; exit 1; }
 
 echo "4/5 Install on $SITE"
 if echo "$INSTALLED" | grep -qw "$APP"; then

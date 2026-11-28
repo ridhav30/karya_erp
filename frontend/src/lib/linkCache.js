@@ -5,9 +5,10 @@ export const cache = new Map() // key -> { at, results }
 export const labels = new Map() // `${doctype}|${value}` -> option (for showing the picked label)
 const inflight = new Map() // key -> Promise
 
-export const keyOf = (doctype, filtersKey, txt) => `${doctype}|${filtersKey}|${txt.trim().toLowerCase()}`
+export const keyOf = (doctype, filtersKey, txt, show = '') => `${doctype}|${filtersKey}|${txt.trim().toLowerCase()}|${show}`
+export const labelKey = (doctype, value, show = '') => `${doctype}|${show}|${value}`
 
-function toOption(doctype, r) {
+function toOption(doctype, r, show = '') {
   const label = r.label && r.label !== r.value ? r.label : r.value
   const opt = {
     value: r.value,
@@ -15,7 +16,7 @@ function toOption(doctype, r) {
     badge: label !== r.value ? r.value : undefined,
     description: r.description ? String(r.description).replace(/<[^>]+>/g, '').trim() : undefined,
   }
-  labels.set(`${doctype}|${r.value}`, opt)
+  labels.set(labelKey(doctype, r.value, show), opt)
   return opt
 }
 
@@ -27,8 +28,8 @@ export const MAX = 300 // never ask for more than this at once; type to narrow d
  * same search from the top, so the list is always one consistent result set (no repeats or gaps between "pages").
  * Resolves to { at, results, hasMore, size }.
  */
-export function searchLink(call, doctype, filtersKey, txt, size = PAGE) {
-  const key = keyOf(doctype, filtersKey, txt)
+export function searchLink(call, doctype, filtersKey, txt, size = PAGE, show = '') {
+  const key = keyOf(doctype, filtersKey, txt, show)
   const hit = cache.get(key)
   if (hit && Date.now() - hit.at < TTL && hit.size >= size) return Promise.resolve(hit)
   const flight = `${key}|${size}`
@@ -36,10 +37,11 @@ export function searchLink(call, doctype, filtersKey, txt, size = PAGE) {
   const p = call.get('karya_erp.api.link_search', {
     doctype, txt, page_length: size,
     filters: filtersKey === '{}' ? undefined : filtersKey,
+    show: show || undefined,
   })
     .then((res) => {
       const m = res?.message ?? {}
-      const entry = { at: Date.now(), results: (m.results ?? []).map((r) => toOption(doctype, r)), hasMore: Boolean(m.has_more), size }
+      const entry = { at: Date.now(), results: (m.results ?? []).map((r) => toOption(doctype, r, show)), hasMore: Boolean(m.has_more), size }
       cache.set(key, entry)
       return entry
     })

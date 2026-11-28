@@ -9,9 +9,9 @@ import StatusBadge from '../../components/StatusBadge.jsx'
 import LinkField from '../../components/fields/LinkField.jsx'
 import Select from '../../components/fields/Select.jsx'
 import { SIDES } from '../../lib/partySides.js'
-import { ROUTE_OF } from '../../lib/doctypes.js'
 import { errorText } from '../../lib/errors.js'
 import { formatDate, formatMoney } from '../../lib/format.js'
+import { docRoute } from '../../lib/docRoute.js'
 import { useBoot } from '../../app/boot-context.js'
 
 /** Every payment received from customers / paid to suppliers, paged, optionally for one party and period. */
@@ -33,7 +33,7 @@ export default function PartyHistory({ side }) {
   const d = data?.message
   const cur = d?.currency || boot.currency
   const reset = (fn) => (v) => { fn(v); setStart(0) }
-  const docRoute = (dt, n) => (ROUTE_OF[dt] ? `${ROUTE_OF[dt]}/${encodeURIComponent(n)}` : null)
+  const docRouteOf = (dt, n) => docRoute(boot, dt, n)
   const setParty = (v) => { const n = new URLSearchParams(sp); if (v) n.set('party', v); else n.delete('party'); setSp(n, { replace: true }); setStart(0) }
 
   return (
@@ -84,7 +84,7 @@ export default function PartyHistory({ side }) {
                       {r.references.length === 0 && (r.unallocated_amount > 0 ? <span className="text-muted">On account</span> : '—')}
                       {r.references.map((x) => (
                         <div key={x.reference_name} className="whitespace-nowrap">
-                          {docRoute(x.reference_doctype, x.reference_name) ? <Link to={docRoute(x.reference_doctype, x.reference_name)} className="hover:text-primary hover:underline">{x.reference_name}</Link> : x.reference_name}
+                          {docRouteOf(x.reference_doctype, x.reference_name) ? <Link to={docRouteOf(x.reference_doctype, x.reference_name)} className="hover:text-primary hover:underline">{x.reference_name}</Link> : x.reference_name}
                           <span className="num text-muted"> · {formatMoney(x.allocated_amount, cur)}</span>
                         </div>
                       ))}

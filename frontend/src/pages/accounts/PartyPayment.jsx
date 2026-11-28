@@ -8,9 +8,9 @@ import LinkField from '../../components/fields/LinkField.jsx'
 import Select from '../../components/fields/Select.jsx'
 import { SIDES } from '../../lib/partySides.js'
 import { fifoShares } from '../../lib/fifo.js'
-import { ROUTE_OF } from '../../lib/doctypes.js'
 import { errorText } from '../../lib/errors.js'
 import { formatDate, formatMoney } from '../../lib/format.js'
+import { docRoute } from '../../lib/docRoute.js'
 import { useBoot } from '../../app/boot-context.js'
 import { useCall } from '../../lib/useCall.js'
 import { useToast } from '../../app/toast-context.js'
@@ -50,7 +50,7 @@ export default function PartyPayment({ side }) {
   const paid = amount == null ? allocated : num(amount)
   const mop = mode || (d?.modes?.includes('Cash') ? 'Cash' : d?.modes?.[0]) || ''
   const anyOpen = invoices.some((i) => i.outstanding_amount > 0)
-  const route = (dt, n) => (ROUTE_OF[dt] ? `${ROUTE_OF[dt]}/${encodeURIComponent(n)}` : null)
+  const route = (dt, n) => docRoute(boot, dt, n)
   const invDoctype = side === 'receive' ? 'Sales Invoice' : 'Purchase Invoice'
 
   // Typing an amount spreads it over the open invoices, oldest due date first; ticking / editing rows still works by hand.

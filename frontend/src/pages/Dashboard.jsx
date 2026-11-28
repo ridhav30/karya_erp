@@ -10,7 +10,7 @@ import GroupedBars from '../components/charts/GroupedBars.jsx'
 import { useBoot } from '../app/boot-context.js'
 import { useDashboard } from '../lib/useDashboard.js'
 import { ago } from '../lib/activity.js'
-import { ROUTE_OF } from '../lib/doctypes.js'
+import { docRoute } from '../lib/docRoute.js'
 import { formatMoney, formatNumber } from '../lib/format.js'
 import { cn } from '../lib/utils.js'
 
@@ -55,7 +55,6 @@ function Card({ title, action, children, className }) {
 const More = ({ to, children = 'All' }) => <Link to={to} className="text-xs text-primary hover:underline">{children}</Link>
 const Empty = ({ children }) => <p className="px-4 py-6 text-center text-xs text-muted">{children}</p>
 const Skeleton = () => <div className="space-y-2 p-4">{[0, 1, 2].map((i) => <div key={i} className="h-4 animate-pulse rounded bg-surface-2" />)}</div>
-const docLink = (doctype, name) => (ROUTE_OF[doctype] ? `${ROUTE_OF[doctype]}/${encodeURIComponent(name)}` : null)
 
 function Trend({ now, before }) {
   if (now == null || !before) return null
@@ -149,7 +148,7 @@ export default function Dashboard() {
           {apLoading ? <Skeleton /> : approvals.length === 0 ? <Empty>You're all caught up.</Empty> : (
             <ul className="divide-y">
               {approvals.slice(0, 6).map((a) => {
-                const to = docLink(a.doctype, a.name)
+                const to = docRoute(boot, a.doctype, a.name)
                 return (
                   <li key={`${a.doctype}:${a.name}`} className="flex items-center gap-3 px-4 py-2.5 text-xs">
                     <div className="min-w-0 flex-1">
@@ -169,7 +168,7 @@ export default function Dashboard() {
           {ovLoading ? <Skeleton /> : (o?.recent?.length ?? 0) === 0 ? <Empty>Nothing yet.</Empty> : (
             <ul className="divide-y">
               {o.recent.map((r) => {
-                const to = docLink(r.doctype, r.name)
+                const to = docRoute(boot, r.doctype, r.name)
                 return (
                   <li key={`${r.doctype}:${r.name}`} className="flex items-center gap-3 px-4 py-2.5 text-xs">
                     <div className="min-w-0 flex-1">

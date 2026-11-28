@@ -10,6 +10,7 @@
     "/batches",
     "/credit-notes",
     "/customers",
+    "/employee-programs",
     "/financial-reports",
     "/import",
     "/item-prices",
@@ -128,6 +129,12 @@
       "entries": [
         "Users & Access"
       ]
+    },
+    {
+      "feature": "Custom",
+      "entries": [
+        "Employee programs"
+      ]
     }
   ],
   "look": {
@@ -161,6 +168,57 @@
       },
       "addons": {
         "chat": "yes"
+      },
+      "design_snapshots": {
+        "Employee programs": {
+          "fields": [
+            {
+              "label": "Employee",
+              "fieldname": "employee",
+              "type": "link",
+              "required": 1,
+              "options": "Employee",
+              "show": "employee_name",
+              "fields": []
+            },
+            {
+              "label": "Date of joinining",
+              "fieldname": "date_of_joinining",
+              "type": "date",
+              "required": 1,
+              "options": "",
+              "show": "",
+              "fields": []
+            },
+            {
+              "label": "Nick name",
+              "fieldname": "nick_name",
+              "type": "text",
+              "required": 0,
+              "options": "",
+              "show": "",
+              "fields": []
+            },
+            {
+              "label": "place",
+              "fieldname": "place",
+              "type": "text",
+              "required": 0,
+              "options": "",
+              "show": "",
+              "fields": []
+            },
+            {
+              "label": "Description",
+              "fieldname": "description",
+              "type": "long_text",
+              "required": 0,
+              "options": "",
+              "show": "",
+              "fields": []
+            }
+          ]
+        }
       }
     },
     "workflows": [],
@@ -174,7 +232,7 @@
         "type": "group",
         "id": "g:Selling",
         "group": "Selling",
-        "label": "Selling",
+        "label": "Sales",
         "items": [
           "/pos",
           "/customers",
@@ -185,7 +243,7 @@
         "type": "group",
         "id": "g:Buying",
         "group": "Buying",
-        "label": "Buying",
+        "label": "Purchase",
         "items": [
           "/suppliers",
           "/purchase-orders",
@@ -197,7 +255,7 @@
         "type": "group",
         "id": "g:Stock",
         "group": "Stock",
-        "label": "Stock",
+        "label": "Inventory",
         "items": [
           "/items",
           "/warehouses",
@@ -262,8 +320,70 @@
       {
         "type": "link",
         "to": "/my-hr"
+      },
+      {
+        "type": "group",
+        "id": "g:Custom",
+        "group": "Custom",
+        "label": "Programs",
+        "items": [
+          "/employee-programs"
+        ]
       }
     ],
-    "doctypes": []
+    "doctypes": [
+      {
+        "name": "Employee programs",
+        "design": {
+          "fields": [
+            {
+              "label": "Employee",
+              "fieldname": "employee",
+              "type": "link",
+              "required": 1,
+              "options": "Employee",
+              "show": "employee_name",
+              "fields": []
+            },
+            {
+              "label": "Date of joinining",
+              "fieldname": "date_of_joinining",
+              "type": "date",
+              "required": 1,
+              "options": "",
+              "show": "",
+              "fields": []
+            },
+            {
+              "label": "Nick name",
+              "fieldname": "nick_name",
+              "type": "text",
+              "required": 0,
+              "options": "",
+              "show": "",
+              "fields": []
+            },
+            {
+              "label": "place",
+              "fieldname": "place",
+              "type": "text",
+              "required": 0,
+              "options": "",
+              "show": "",
+              "fields": []
+            },
+            {
+              "label": "Description",
+              "fieldname": "description",
+              "type": "long_text",
+              "required": 0,
+              "options": "",
+              "show": "",
+              "fields": []
+            }
+          ]
+        }
+      }
+    ]
   }
 }

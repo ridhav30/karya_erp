@@ -2,12 +2,14 @@ import { Link } from 'react-router'
 import StatusBadge from '../StatusBadge.jsx'
 import StarRating from './StarRating.jsx'
 import { formatDate, formatMoney, formatNumber } from '../../lib/format.js'
-import { ROUTE_OF } from '../../lib/doctypes.js'
+import { docRoute } from '../../lib/docRoute.js'
+import { useBoot } from '../../app/boot-context.js'
 
 const DOCSTATUS = { 0: 'Draft', 1: 'Submitted', 2: 'Cancelled' }
 
 /** Read-only display of one field value, chosen by fieldtype. */
 export default function FieldValue({ field, value, doc, currency, linkable = true }) {
+  const boot = useBoot()
   const t = field.fieldtype
   const empty = value == null || value === ''
 
@@ -31,9 +33,10 @@ export default function FieldValue({ field, value, doc, currency, linkable = tru
   if (t === 'Currency') return <span className="num">{formatMoney(value, currency || doc?.currency)}</span>
   if (t === 'Percent') return <Progress value={value} />
   if (t === 'Int' || t === 'Float') return <span className="num">{formatNumber(value, t === 'Int' ? 0 : 3)}</span>
-  if (t === 'Link' && linkable && ROUTE_OF[field.options]) {
+  const linkTo = t === 'Link' && linkable ? docRoute(boot, field.options, value) : null // only when this person may open it
+  if (linkTo) {
     return (
-      <Link to={`${ROUTE_OF[field.options]}/${encodeURIComponent(value)}`} onClick={(e) => e.stopPropagation()} className="text-primary hover:underline">
+      <Link to={linkTo} onClick={(e) => e.stopPropagation()} className="text-primary hover:underline">
         {value}
       </Link>
     )

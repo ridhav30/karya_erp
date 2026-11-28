@@ -1899,6 +1899,47 @@ export const DOCTYPES = {
       return { year: String(y), year_start_date: `${y}-01-01`, year_end_date: `${y}-12-31` }
     },
   },
+
+  /* ---------------- Designed in the Operator ---------------- */
+  "employee-programs": {
+    "doctype": "Employee programs",
+    "title": "Employee programs",
+    "single": "Employee programs",
+    "list": [
+      "name",
+      "employee",
+      "date_of_joinining",
+      "nick_name",
+      "place"
+    ],
+    "columns": [
+      "name",
+      "employee",
+      "date_of_joinining",
+      "nick_name",
+      "place"
+    ],
+    "search": [
+      "name",
+      "employee"
+    ],
+    "sections": [
+      {
+        "title": "Details",
+        "fields": [
+          {
+            "field": "employee",
+            "show": "employee_name"
+          },
+          "date_of_joinining",
+          "nick_name",
+          "place",
+          "description"
+        ]
+      }
+    ],
+    "titleField": "employee"
+  },
 }
 
 /* ---------------- Party helpers ---------------- */

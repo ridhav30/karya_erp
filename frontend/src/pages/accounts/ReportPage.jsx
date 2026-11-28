@@ -15,7 +15,7 @@ import { useCall } from '../../lib/useCall.js'
 import { errorText } from '../../lib/errors.js'
 import { formatDate, formatMoney, formatNumber } from '../../lib/format.js'
 import { reportByKey } from '../../lib/reports.js'
-import { ROUTE_OF } from '../../lib/doctypes.js'
+import { docRoute } from '../../lib/docRoute.js'
 import { cn } from '../../lib/utils.js'
 
 const RIGHT = new Set(['Currency', 'Float', 'Int', 'Percent'])
@@ -265,8 +265,9 @@ function Report({ def, ctx }) {
     if (t === 'Percent') return <span className="num">{formatNumber(v, 2)}%</span>
     if (t === 'Date') return <span className="num">{formatDate(v)}</span>
     const target = t === 'Link' ? c.options : t === 'Dynamic Link' ? r[c.options] : null
-    if (target && ROUTE_OF[target] && !r.__total) {
-      return <Link to={`${ROUTE_OF[target]}/${encodeURIComponent(r[c.fieldname])}`} className="text-primary hover:underline">{v}</Link>
+    const to = target && !r.__total ? docRoute(boot, target, r[c.fieldname]) : null
+    if (to) {
+      return <Link to={to} className="text-primary hover:underline">{v}</Link>
     }
     return <span>{String(v)}</span>
   }

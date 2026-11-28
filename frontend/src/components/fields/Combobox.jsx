@@ -2,6 +2,9 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Check, ChevronDown, Loader2, Plus, Search, X } from 'lucide-react'
 import { cn } from '../../lib/utils.js'
+import { useLayer } from '../../lib/useLayer.js'
+
+const PHONE = '(max-width: 639px)'
 
 /**
  * Combobox — same behaviour as the e-invoicing app's CustomSelect.
@@ -53,6 +56,7 @@ export default function Combobox({
   const [search, setSearch] = useState('')
   const [highlighted, setHighlighted] = useState(-1)
   const [pos, setPos] = useState(null)
+  const [sheet, setSheet] = useState(false) // phones: a bottom sheet instead of a dropdown under the field
 
   const buttonRef = useRef(null)
   const searchRef = useRef(null)
@@ -97,7 +101,9 @@ export default function Combobox({
   const open = (seed = '') => {
     if (disabled || isOpen) return
     window.dispatchEvent(new CustomEvent('close-all-comboboxes', { detail: selectId }))
-    setPos(computePosition())
+    const phone = typeof window !== 'undefined' && window.matchMedia?.(PHONE).matches
+    setSheet(Boolean(phone))
+    setPos(phone ? {} : computePosition())
     setSearch(seed)
     if (seed) onSearch?.(seed)
     keyboardNav.current = false
@@ -127,7 +133,7 @@ export default function Combobox({
 
   // Stay anchored on page scroll / resize (but not when the list itself scrolls).
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen || sheet) return
     const reposition = (e) => {
       if (e?.target instanceof Node && dropdownRef.current?.contains(e.target)) return
       const p = computePosition()
@@ -139,11 +145,11 @@ export default function Combobox({
       window.removeEventListener('resize', reposition)
       window.removeEventListener('scroll', reposition, { capture: true })
     }
-  }, [isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, sheet]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Click / touch outside closes.
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen || sheet) return
     const outside = (e) => {
       const path = e.composedPath?.() ?? []
       const inButton = buttonRef.current && (buttonRef.current.contains(e.target) || path.includes(buttonRef.current))
@@ -156,12 +162,12 @@ export default function Combobox({
       document.removeEventListener('mousedown', outside)
       document.removeEventListener('touchstart', outside)
     }
-  }, [isOpen])
+  }, [isOpen, sheet])
 
   // Focus the search box on open; bring the selected row into view.
   useEffect(() => {
     if (!isOpen) return
-    if (showSearch) searchRef.current?.focus({ preventScroll: true })
+    if (showSearch && !sheet) searchRef.current?.focus({ preventScroll: true })
     const el = listboxRef.current?.querySelector('[aria-selected="true"]')
     if (el && listboxRef.current) listboxRef.current.scrollTop = el.offsetTop - listboxRef.current.clientHeight / 2 + el.clientHeight / 2
   }, [isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -185,6 +191,9 @@ export default function Combobox({
     if (ir.top < br.top) box.scrollTop -= br.top - ir.top
     else if (ir.bottom > br.bottom) box.scrollTop += ir.bottom - br.bottom
   }, [highlighted, isOpen, createActive])
+
+  // Esc, the phone's Back button and a locked page behind, for the sheet.
+  useLayer(isOpen && sheet, () => close(true))
 
   // ---- actions
   const choose = (val, refocus = true) => {
@@ -257,19 +266,25 @@ export default function Combobox({
   // ---- render
   const cell = variant === 'cell'
   const shown = displayValue ?? selected
-  const listMax = Math.max(100, (pos?.maxHeight ?? 280) - (showSearch ? 52 : 12) - (onQuickCreate ? 40 : 0))
+  const listMax = sheet ? undefined : Math.max(100, (pos?.maxHeight ?? 280) - (showSearch ? 52 : 12) - (onQuickCreate ? 40 : 0))
 
-  const dropdown = isOpen && pos && createPortal(
+  const panel = !(isOpen && pos) ? null : (
     <div
       ref={dropdownRef}
       data-combobox-dropdown=""
       onKeyDown={onKeyDown}
-      style={{
+      style={sheet ? undefined : {
         position: 'fixed', left: pos.left, width: pos.width, zIndex: 99999, maxHeight: pos.maxHeight,
         top: pos.up ? 'auto' : pos.top, bottom: pos.up ? window.innerHeight - pos.top : 'auto',
       }}
-      className="flex flex-col overflow-hidden rounded-md border bg-background py-1 text-xs text-foreground dark:bg-[#18181b]"
+      className={cn('flex flex-col overflow-hidden bg-background text-xs text-foreground dark:bg-[#18181b]', sheet ? 'relative max-h-[75dvh] w-full rounded-t-2xl border-t pb-[env(safe-area-inset-bottom)]' : 'rounded-md border py-1')}
     >
+      {sheet && (
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border-subtle px-4 py-2.5">
+          <span className="truncate text-[13px] font-semibold">{placeholder}</span>
+          <button type="button" onClick={() => close(true)} aria-label="Close" className="grid size-8 place-items-center rounded-md text-muted active:bg-surface-2"><X className="size-4" /></button>
+        </div>
+      )}
       {showSearch && (
         <div className="shrink-0 border-b border-border-subtle bg-gray-50/70 p-2 dark:bg-zinc-900/50">
           <div className="relative">
@@ -281,7 +296,7 @@ export default function Combobox({
               placeholder={searchPlaceholder ?? 'Search…'}
               role="searchbox"
               aria-controls={listId}
-              className="w-full rounded-md border bg-background py-1.5 ps-7 pe-7 text-xs text-foreground outline-none placeholder:text-muted/70 focus:border-primary dark:bg-zinc-900"
+              className="w-full rounded-md border bg-background py-1.5 ps-7 pe-7 text-base text-foreground outline-none sm:text-xs placeholder:text-muted/70 focus:border-primary dark:bg-zinc-900"
             />
             {loading && <Loader2 className="absolute end-2.5 top-1/2 size-3 -translate-y-1/2 animate-spin text-muted" />}
           </div>
@@ -308,7 +323,7 @@ export default function Combobox({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => choose(o.value, true)}
               className={cn(
-                'flex cursor-pointer items-center justify-between gap-2 rounded-md px-3 py-1.5 transition-colors',
+                'flex cursor-pointer items-center justify-between gap-2 rounded-md px-3 transition-colors', sheet ? 'min-h-11 py-2' : 'py-1.5',
                 isSel ? 'bg-primary-soft font-semibold text-primary' : isHi ? 'bg-surface-2 text-foreground' : 'text-gray-700 hover:bg-gray-50 dark:text-zinc-300 dark:hover:bg-zinc-800/60',
               )}
             >
@@ -354,7 +369,15 @@ export default function Combobox({
           </button>
         </div>
       )}
-    </div>,
+    </div>
+  )
+  const dropdown = isOpen && pos && createPortal(
+    sheet ? (
+      <div className="fixed inset-0 z-[99999] flex flex-col justify-end" data-combobox-sheet="">
+        <div className="absolute inset-0 animate-fade-in bg-black/50" onPointerDown={() => close(true)} aria-hidden="true" />
+        {panel}
+      </div>
+    ) : panel,
     document.body,
   )
 

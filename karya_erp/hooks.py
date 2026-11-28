@@ -10,7 +10,7 @@ website_route_rules = [
 # Apps
 # ------------------
 
-# required_apps = []
+required_apps = ["erpnext"]
 
 # Each item in the list will be shown as an app in the apps page
 # add_to_apps_screen = [
@@ -311,3 +311,9 @@ website_redirects = [
     {"source": "/", "target": "/karya_erp", "redirect_http_status": 302},
     {"source": "/login", "target": "/karya_erp", "redirect_http_status": 302},
 ]
+
+# Stock method chosen in the Operator.
+for _hook in ("after_install", "after_migrate"):
+	_cur = globals().get(_hook) or []
+	_cur = [_cur] if isinstance(_cur, str) else list(_cur)
+	globals()[_hook] = _cur + ["karya_erp.setup_defaults.apply"]

@@ -8,6 +8,7 @@ import { useColumnPrefs } from '../lib/useColumnPrefs.js'
 import { useWishlist } from '../lib/useWishlist.js'
 import { listColumnChoices } from '../lib/tableLayout.js'
 import MobileList from '../components/MobileList.jsx'
+import DocPopup from '../components/DocPopup.jsx'
 import Button from '../components/Button.jsx'
 import SourcePicker from '../components/SourcePicker.jsx'
 import FilterPopover from '../components/FilterPopover.jsx'
@@ -87,6 +88,7 @@ export default function ListPage({ slug, config }) {
   const [making, setMaking] = useState(false)
   const [params, setParams] = useSearchParams()
   const [deleting, setDeleting] = useState(null)
+  const [popup, setPopup] = useState(null) // { name } of the record open in the add / edit popup (name empty = a new one)
   const { meta, error: metaError, isLoading: metaLoading } = useMeta(config.doctype)
 
   const q = params.get('q') ?? ''
@@ -202,6 +204,7 @@ export default function ListPage({ slug, config }) {
 
   // Masters (Customer, Item …) are created in a popup; transactions open the full form.
   const createNew = () => {
+    if (config.popup) { setPopup({ name: '' }); return } // screens set to add / edit in a popup
     if (config.createFrom) { setPicking(true); return }
     if (QUICK_CREATE[config.doctype] && quick) quick.openQuickCreate({ doctype: config.doctype, onCreated: () => refresh() })
     else navigate(`/${slug}/new`)
@@ -232,8 +235,8 @@ export default function ListPage({ slug, config }) {
     return () => clearTimeout(t)
   }, [wantNew]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const openDoc = (r) => navigate(`/${slug}/${encodeURIComponent(r.name)}`)
-  const editDoc = (r) => navigate(`/${slug}/${encodeURIComponent(r.name)}?edit=1`)
+  const openDoc = (r) => (config.popup ? setPopup({ name: r.name }) : navigate(`/${slug}/${encodeURIComponent(r.name)}`))
+  const editDoc = (r) => (config.popup ? setPopup({ name: r.name }) : navigate(`/${slug}/${encodeURIComponent(r.name)}?edit=1`))
   const removeDoc = async (r) => {
     if (!(await confirm({ title: `Delete ${config.single}?`, message: `Delete ${r.name}?`, confirmLabel: 'Delete', tone: 'danger' }))) return
     setDeleting(r.name)
@@ -417,6 +420,8 @@ export default function ListPage({ slug, config }) {
           </div>
         </>
       )}
+
+      {popup && <DocPopup config={config} name={popup.name} onClose={() => setPopup(null)} onSaved={() => { setPopup(null); refresh() }} />}
 
       {/* Pagination */}
       <div className="flex flex-col gap-2 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
